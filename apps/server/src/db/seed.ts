@@ -11,7 +11,7 @@ import {
 } from "./schema.js";
 import { exit } from "process";
 
-async function main() {
+async function seedDatabase() {
   console.log("Seeding database...");
 
   console.log("Seeding customers table...");
@@ -144,4 +144,4 @@ async function main() {
   exit(0);
 }
 
-main();
+seedDatabase();
