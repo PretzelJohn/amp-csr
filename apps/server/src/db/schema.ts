@@ -5,16 +5,22 @@ import {
   timestamp,
   text,
   jsonb,
+  numeric,
 } from "drizzle-orm/pg-core";
 import type { PgTimestampConfig } from "drizzle-orm/pg-core";
 
-// Shared timestamp options for all tables that use timestamps
+// Shared data type options for all tables
 const timestampOptions: PgTimestampConfig<"date"> = {
   precision: 6,
   withTimezone: true,
 };
 
-export const timestamps = {
+const priceOptions = {
+  precision: 10,
+  scale: 2,
+};
+
+const timestamps = {
   created_at: timestamp("created_at", timestampOptions).notNull().defaultNow(),
   updated_at: timestamp("updated_at", timestampOptions).notNull().defaultNow(),
 };
@@ -28,6 +34,8 @@ export const auditLogsTable = pgTable("audit_logs", {
   customer_id: integer()
     .notNull()
     .references(() => customersTable.id), //the customer account affected by the action
+  table_name: varchar({ length: 50 }).notNull(), //the table affected by the action
+  record_id: integer().notNull(), //the primary key of the record affected by the action
   action_type: text().notNull(),
   from: jsonb(),
   to: jsonb(),
@@ -63,7 +71,7 @@ export const purchasesTable = pgTable("purchases", {
   type: varchar({ length: 50 }).notNull(),
   description: text().notNull(),
   purchased_at: timestamp("purchased_at", timestampOptions).notNull(),
-  amount: integer().notNull(),
+  amount: numeric("amount", priceOptions).notNull(),
   status: varchar({ length: 50 }).notNull(),
   ...timestamps,
 });
@@ -85,13 +93,13 @@ export const subscriptionsTable = pgTable("subscriptions", {
 });
 
 //transactions table: stores customer transaction information for subscription payments
-export const subscriptionTransactionsTable = pgTable("subscription_payments", {
+export const subscriptionPaymentsTable = pgTable("subscription_payments", {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
   subscription_id: integer()
     .notNull()
     .references(() => subscriptionsTable.id),
-  amount: integer().notNull(),
-  transaction_at: timestamp("transaction_at", timestampOptions).notNull(), //may be different from created_at if we want to record the actual time of the transaction
+  amount: numeric("amount", priceOptions).notNull(),
+  payment_at: timestamp("payment_at", timestampOptions).notNull(), //may be different from created_at if we want to record the actual time of the transaction
   status: varchar({ length: 50 }).notNull(),
   ...timestamps,
 });
