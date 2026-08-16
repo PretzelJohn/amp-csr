@@ -113,12 +113,41 @@ From `apps/server`:
 ```bash
 pnpm build
 pnpm dev
+pnpm lint
+pnpm lint:fix
+pnpm test
 pnpm db:generate
 pnpm db:migrate
 pnpm db:push
 pnpm db:reset
 pnpm db:seed
 pnpm db:studio
+```
+
+## Linting and testing
+
+Run these from the project root to validate the workspace after code changes:
+
+```bash
+pnpm lint
+pnpm test
+```
+
+This runs the frontend and backend lint checks, then executes the server Vitest suite.
+
+If you want to target a single app instead:
+
+```bash
+pnpm --dir apps/server lint
+pnpm --dir apps/server test
+pnpm --dir apps/web lint
+```
+
+For auto-fixes:
+
+```bash
+pnpm lint:fix
+pnpm --dir apps/server lint:fix
 ```
 
 ## Database commands
