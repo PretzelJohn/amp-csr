@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "concurrently \"pnpm --dir apps/web dev\" \"pnpm --dir apps/server dev\"",
     "build": "pnpm --dir apps/web build && pnpm --dir apps/server build",
-    "lint": "pnpm --dir apps/web lint",
+    "lint": "pnpm --dir apps/web lint && pnpm --dir apps/server lint",
+    "lint:fix": "pnpm --dir apps/web lint:fix && pnpm --dir apps/server lint:fix",
     "db:generate": "pnpm --dir apps/server db:generate"
   },
   "devDependencies": {
