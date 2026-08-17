@@ -55,12 +55,20 @@ jobs:
           OCI_USERNAME: ${{ secrets.OCI_USERNAME }}
           OCI_SSH_KEY: ${{ secrets.OCI_SSH_KEY }}
         run: |
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-          printf '%s\n' "$OCI_SSH_KEY" > ~/.ssh/oci_key
-          chmod 600 ~/.ssh/oci_key
+          export HOME="${HOME:-/home/runner}"
+          export SSH_DIR="${HOME}/.ssh"
 
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/oci_key "${OCI_USERNAME}@${OCI_HOST}" "sudo mkdir -p /var/www/amp.lucashussey.com/releases /var/www/amp.lucashussey.com/shared /var/www/amp.lucashussey.com/html && sudo chown -R ${OCI_USERNAME}:${OCI_USERNAME} /var/www/amp.lucashussey.com"
+          [[ -n "$OCI_HOST" && -n "$OCI_USERNAME" && -n "$OCI_SSH_KEY" ]] || {
+            echo "Missing OCI deployment secrets: OCI_HOST, OCI_USERNAME, or OCI_SSH_KEY"
+            exit 1
+          }
+
+          mkdir -p "$SSH_DIR"
+          chmod 700 "$SSH_DIR"
+          printf '%s\n' "$OCI_SSH_KEY" > "$SSH_DIR/oci_key"
+          chmod 600 "$SSH_DIR/oci_key"
+
+          ssh -o StrictHostKeyChecking=no -i "$SSH_DIR/oci_key" "${OCI_USERNAME}@${OCI_HOST}" "sudo mkdir -p /var/www/amp.lucashussey.com/releases /var/www/amp.lucashussey.com/shared /var/www/amp.lucashussey.com/html && sudo chown -R ${OCI_USERNAME}:${OCI_USERNAME} /var/www/amp.lucashussey.com"
 
       - name: Deploy to OCI via rsync
         uses: easingthemes/ssh-deploy@main
@@ -81,16 +89,24 @@ jobs:
           DEFAULT_USER_PASSWORD: ${{ secrets.DEFAULT_USER_PASSWORD }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
         run: |
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-          printf '%s\n' "$OCI_SSH_KEY" > ~/.ssh/oci_key
-          chmod 600 ~/.ssh/oci_key
+          export HOME="${HOME:-/home/runner}"
+          export SSH_DIR="${HOME}/.ssh"
+
+          [[ -n "$OCI_HOST" && -n "$OCI_USERNAME" && -n "$OCI_SSH_KEY" ]] || {
+            echo "Missing OCI deployment secrets: OCI_HOST, OCI_USERNAME, or OCI_SSH_KEY"
+            exit 1
+          }
+
+          mkdir -p "$SSH_DIR"
+          chmod 700 "$SSH_DIR"
+          printf '%s\n' "$OCI_SSH_KEY" > "$SSH_DIR/oci_key"
+          chmod 600 "$SSH_DIR/oci_key"
 
           export REMOTE_DATABASE_URL="$DATABASE_URL"
           export REMOTE_DEFAULT_USER_PASSWORD="$DEFAULT_USER_PASSWORD"
           export REMOTE_JWT_SECRET="$JWT_SECRET"
 
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/oci_key "${OCI_USERNAME}@${OCI_HOST}" "bash -s" <<REMOTE
+          ssh -o StrictHostKeyChecking=no -i "$SSH_DIR/oci_key" "${OCI_USERNAME}@${OCI_HOST}" "bash -s" <<REMOTE
             set -euo pipefail
 
             export DATABASE_URL="${REMOTE_DATABASE_URL}"
