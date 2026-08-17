@@ -2,8 +2,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../db/index.js", () => ({
   db: {
+    query: {
+      subscriptionsTable: {
+        findMany: vi.fn(),
+      },
+    },
     select: vi.fn(),
     update: vi.fn(),
+    insert: vi.fn(),
   },
 }));
 
@@ -43,6 +49,10 @@ const makeSelectQuery = (result: unknown[] = []) => ({
   then: (resolve: (value: unknown[]) => unknown[]) => resolve(result),
 });
 
+const findManyForSubscriptions = vi.mocked(
+  db.query.subscriptionsTable.findMany,
+);
+
 describe("subscriptionData", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -50,24 +60,40 @@ describe("subscriptionData", () => {
 
   it("lists subscriptions for a customer", async () => {
     const expected = [{ id: 11, customer_id: 3, status: "active" }];
-    const selectChain = makeSelectQuery(expected);
-    vi.mocked(db.select).mockReturnValue(selectChain as never);
+    findManyForSubscriptions.mockResolvedValue(expected as never);
 
     const result = await subscriptionRepo.listByCustomer(3);
 
     expect(result).toEqual(expected);
-    expect(selectChain.where).toHaveBeenCalledTimes(1);
+    expect(findManyForSubscriptions).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.anything(),
+        orderBy: expect.anything(),
+        with: expect.objectContaining({
+          vehicle: true,
+          payments: true,
+        }),
+      }),
+    );
   });
 
   it("lists subscriptions for a vehicle", async () => {
     const expected = [{ id: 11, vehicle_id: 7, status: "active" }];
-    const selectChain = makeSelectQuery(expected);
-    vi.mocked(db.select).mockReturnValue(selectChain as never);
+    findManyForSubscriptions.mockResolvedValue(expected as never);
 
     const result = await subscriptionRepo.listByVehicle(7);
 
     expect(result).toEqual(expected);
-    expect(selectChain.where).toHaveBeenCalledTimes(1);
+    expect(findManyForSubscriptions).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.anything(),
+        orderBy: expect.anything(),
+        with: expect.objectContaining({
+          vehicle: true,
+          payments: true,
+        }),
+      }),
+    );
   });
 
   it("gets a subscription by id", async () => {

@@ -112,6 +112,34 @@ customerRoutes.get("/:customerId/subscriptions", async (c) => {
   return c.json(subscriptions);
 });
 
+customerRoutes.post("/:customerId/subscriptions", async (c) => {
+  const { customerId } = customerIdParamSchema.parse({
+    customerId: c.req.param("customerId"),
+  });
+
+  const body = await c.req.json().catch(() => ({}));
+  const vehicleId = Number(body.vehicle_id);
+  const plan = typeof body.plan === "string" ? body.plan.trim() : "";
+
+  if (!Number.isFinite(vehicleId) || vehicleId <= 0) {
+    return c.json({ error: "Invalid vehicle_id" }, 400);
+  }
+
+  if (!plan) {
+    return c.json({ error: "Subscription plan is required" }, 400);
+  }
+
+  const created = await subscriptionService.createForCustomer(customerId, {
+    vehicle_id: vehicleId,
+    plan,
+    starts_at: body.starts_at,
+    ends_at: body.ends_at ?? null,
+    status: typeof body.status === "string" ? body.status : "active",
+  });
+
+  return c.json(created);
+});
+
 customerRoutes.get("/:customerId/payments", async (c) => {
   const { customerId } = customerIdParamSchema.parse({
     customerId: c.req.param("customerId"),

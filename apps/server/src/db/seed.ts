@@ -108,7 +108,7 @@ async function seedDatabase() {
           values: ["Basic", "Standard", "Premium"],
         }),
         status: f.valuesFromArray({
-          values: ["active", "paused", "canceled"],
+          values: ["active", "paused", "expired", "overdue"],
         }),
       },
     },

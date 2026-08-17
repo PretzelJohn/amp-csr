@@ -12,16 +12,6 @@ subscriptionRoutes.get("/customers/:customerId", async (c) => {
   return c.json(subscriptions);
 });
 
-subscriptionRoutes.get("/vehicles/:vehicleId", async (c) => {
-  const vehicleId = Number(c.req.param("vehicleId"));
-  if (!Number.isFinite(vehicleId) || vehicleId <= 0) {
-    return c.json({ error: "Invalid vehicleId" }, 400);
-  }
-
-  const subscriptions = await subscriptionService.getByVehicle(vehicleId);
-  return c.json(subscriptions);
-});
-
 subscriptionRoutes.get("/:subscriptionId/payments", async (c) => {
   const subscriptionId = Number(c.req.param("subscriptionId"));
   if (!Number.isFinite(subscriptionId) || subscriptionId <= 0) {
@@ -44,6 +34,26 @@ subscriptionRoutes.patch("/:subscriptionId/status", async (c) => {
   const updated = await subscriptionService.updateStatus(
     subscriptionId,
     status ?? "active",
+  );
+  return c.json(updated);
+});
+
+subscriptionRoutes.post("/:subscriptionId/transfer", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const subscriptionId = Number(c.req.param("subscriptionId"));
+  const vehicleId = Number(body.vehicle_id);
+
+  if (!Number.isFinite(subscriptionId) || subscriptionId <= 0) {
+    return c.json({ error: "Invalid subscriptionId" }, 400);
+  }
+
+  if (!Number.isFinite(vehicleId) || vehicleId <= 0) {
+    return c.json({ error: "Invalid vehicleId" }, 400);
+  }
+
+  const updated = await subscriptionService.transferSubscriptionToVehicle(
+    subscriptionId,
+    vehicleId,
   );
   return c.json(updated);
 });

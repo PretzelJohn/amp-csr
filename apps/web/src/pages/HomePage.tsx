@@ -3,7 +3,6 @@ import { CustomerNotes } from "@/components/customers/customer-notes";
 import { CustomerProfile } from "@/components/customers/customer-profile";
 import { CustomerPurchases } from "@/components/customers/customer-purchases";
 import { CustomerSubscriptions } from "@/components/customers/customer-subscriptions";
-import { CustomerVehicles } from "@/components/customers/customer-vehicles";
 import {
   CustomerProvider,
   useCustomerContext,
@@ -28,7 +27,6 @@ const CustomerPageContent = () => {
               <>
                 <CustomerProfile customer={selectedCustomer} />
                 <CustomerNotes customerId={selectedCustomer.id} />
-                <CustomerVehicles customerId={selectedCustomer.id} />
                 <CustomerSubscriptions customerId={selectedCustomer.id} />
                 <CustomerPurchases customerId={selectedCustomer.id} />
                 <CustomerAuditLogs customerId={selectedCustomer.id} />
