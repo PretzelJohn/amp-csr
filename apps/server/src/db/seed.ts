@@ -6,8 +6,6 @@ import {
   vehiclesTable,
   subscriptionPaymentsTable,
   purchasesTable,
-  notesTable,
-  auditLogsTable,
   rolesTable,
   usersTable,
   usersToRolesTable,
@@ -15,11 +13,13 @@ import {
 import { exit } from "process";
 import { hashPassword } from "../lib/passwords.js";
 
+const SEED = 12345; // Use a fixed seed for reproducibility
+
 async function seedDatabase() {
   console.log("Seeding database...");
 
   console.log("Seeding roles table...");
-  await seed(db, { rolesTable }, { seed: 12345 }).refine((f) => ({
+  await seed(db, { rolesTable }, { seed: SEED }).refine((f) => ({
     rolesTable: {
       count: 1,
       columns: {
@@ -33,7 +33,7 @@ async function seedDatabase() {
   const defaultPassword = process.env.DEFAULT_USER_PASSWORD;
   if (defaultPassword) {
     const hashedPassword = await hashPassword(defaultPassword);
-    await seed(db, { usersTable }, { seed: 12345 }).refine((f) => ({
+    await seed(db, { usersTable }, { seed: SEED }).refine((f) => ({
       usersTable: {
         count: 1,
         columns: {
@@ -60,7 +60,7 @@ async function seedDatabase() {
   });
 
   console.log("Seeding customers table...");
-  await seed(db, { customersTable }, { seed: 12345 }).refine((f) => ({
+  await seed(db, { customersTable }, { seed: SEED }).refine((f) => ({
     customersTable: {
       count: 10,
       columns: {
@@ -71,7 +71,7 @@ async function seedDatabase() {
 
   console.log("Seeding vehicles table...");
   const thisYear = new Date().getFullYear();
-  await seed(db, { vehiclesTable }, { seed: 12345 }).refine((f) => ({
+  await seed(db, { vehiclesTable }, { seed: SEED }).refine((f) => ({
     vehiclesTable: {
       count: 20,
       columns: {
@@ -98,7 +98,7 @@ async function seedDatabase() {
   }));
 
   console.log("Seeding subscriptions table...");
-  await seed(db, { subscriptionsTable }, { seed: 12345 }).refine((f) => ({
+  await seed(db, { subscriptionsTable }, { seed: SEED }).refine((f) => ({
     subscriptionsTable: {
       count: 10,
       columns: {
@@ -115,23 +115,21 @@ async function seedDatabase() {
   }));
 
   console.log("Seeding subscription payments table...");
-  await seed(db, { subscriptionPaymentsTable }, { seed: 12345 }).refine(
-    (f) => ({
-      subscriptionPaymentsTable: {
-        count: 100,
-        columns: {
-          subscription_id: f.int({ minValue: 1, maxValue: 10 }),
-          amount: f.number({ minValue: 10, maxValue: 100, precision: 100 }),
-          status: f.valuesFromArray({
-            values: ["completed", "failed", "pending"],
-          }),
-        },
+  await seed(db, { subscriptionPaymentsTable }, { seed: SEED }).refine((f) => ({
+    subscriptionPaymentsTable: {
+      count: 100,
+      columns: {
+        subscription_id: f.int({ minValue: 1, maxValue: 10 }),
+        amount: f.number({ minValue: 10, maxValue: 100, precision: 100 }),
+        status: f.valuesFromArray({
+          values: ["completed", "failed", "pending"],
+        }),
       },
-    }),
-  );
+    },
+  }));
 
   console.log("Seeding purchases table...");
-  await seed(db, { purchasesTable }, { seed: 12345 }).refine((f) => ({
+  await seed(db, { purchasesTable }, { seed: SEED }).refine((f) => ({
     purchasesTable: {
       count: 100,
       columns: {
@@ -144,17 +142,6 @@ async function seedDatabase() {
         status: f.valuesFromArray({
           values: ["completed", "failed", "pending"],
         }),
-      },
-    },
-  }));
-
-  console.log("Seeding notes table...");
-  await seed(db, { notesTable }, { seed: 12345 }).refine((f) => ({
-    notesTable: {
-      count: 50,
-      columns: {
-        customer_id: f.int({ minValue: 1, maxValue: 10 }),
-        note: f.loremIpsum({ sentencesCount: 3 }),
       },
     },
   }));
