@@ -1,10 +1,6 @@
 import { desc, eq } from "drizzle-orm";
 import { db } from "../db/index.js";
-import {
-  subscriptionsTable,
-  vehicleOwnersTable,
-  vehiclesTable,
-} from "../db/schema.js";
+import { vehicleOwnersTable, vehiclesTable } from "../db/schema.js";
 import { CreateRepoFunction, DbExecutor } from "./types.js";
 
 export type Vehicle = typeof vehiclesTable.$inferSelect;

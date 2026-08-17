@@ -5,8 +5,6 @@ import {
 } from "../schemas/common.js";
 import { customerService } from "../services/customers.js";
 import { subscriptionService } from "../services/subscriptions.js";
-import { withTransaction } from "../repos/utils.js";
-import { createVehicleRepo } from "../repos/vehicles.js";
 
 export const customerRoutes = new Hono();
 
