@@ -21,7 +21,7 @@ vi.mock("../db/schema.js", () => ({
 }));
 
 import { db } from "../db/index.js";
-import { createAuditLogRepo } from "./auditLogs.js";
+import { createAuditLogRepo } from "./audit-logs.js";
 
 const auditLogRepo = createAuditLogRepo(db);
 

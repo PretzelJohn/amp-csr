@@ -23,7 +23,7 @@ vi.mock("../db/schema.js", () => ({
 }));
 
 import { db } from "../db/index.js";
-import { createSubscriptionPaymentRepo } from "./subscriptionPayments.js";
+import { createSubscriptionPaymentRepo } from "./subscription-payments.js";
 
 const subscriptionPaymentRepo = createSubscriptionPaymentRepo(db);
 
