@@ -55,6 +55,7 @@ jobs:
           OCI_USERNAME: ${{ secrets.OCI_USERNAME }}
           OCI_SSH_KEY: ${{ secrets.OCI_SSH_KEY }}
         run: |
+          sudo mkdir -p /home/runner/.ssh
           export HOME="${HOME:-/home/runner}"
           SSH_DIR="${HOME}/.ssh"
 
@@ -77,6 +78,7 @@ jobs:
           OCI_SSH_KEY: ${{ secrets.OCI_SSH_KEY }}
           TARGET: ${{ env.RELEASE_PATH }}
         run: |
+          sudo mkdir -p /home/runner/.ssh
           export HOME="${HOME:-/home/runner}"
           SSH_DIR="${HOME}/.ssh"
 
@@ -105,6 +107,7 @@ jobs:
           DEFAULT_USER_PASSWORD: ${{ secrets.DEFAULT_USER_PASSWORD }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
         run: |
+          sudo mkdir -p /home/runner/.ssh
           export HOME="${HOME:-/home/runner}"
           SSH_DIR="${HOME}/.ssh"
 
