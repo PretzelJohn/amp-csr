@@ -17,20 +17,6 @@ jobs:
       WEB_DIST: /var/www/amp.lucashussey.com/html
 
     steps:
-      - name: Checkout source code
-        uses: actions/checkout@v4
-
-      - name: Set up pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9.15.0
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: "pnpm"
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -38,6 +24,7 @@ jobs:
         run: |
           pnpm --dir apps/server test -- --run src/routes/auth.test.ts
           pnpm --dir apps/web build
+          pnpm --dir packages/shared build
           pnpm --dir apps/server build
 
       - name: Deploy to OCI via rsync
@@ -58,6 +45,8 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           DEFAULT_USER_PASSWORD: ${{ secrets.DEFAULT_USER_PASSWORD }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          APP_ROOT: /var/www/amp.lucashussey.com
+          RELEASE_PATH: /var/www/amp.lucashussey.com/releases/${{ github.sha }}
         run: |
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
