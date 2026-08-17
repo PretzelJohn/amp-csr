@@ -51,12 +51,20 @@ jobs:
           TARGET: ${{ env.RELEASE_PATH }}
 
       - name: Prepare deployment and restart services
-        uses: appleboy/ssh-action@v1.0.1
-        with:
-          host: ${{ secrets.OCI_HOST }}
-          username: ${{ secrets.OCI_USERNAME }}
-          key: ${{ secrets.OCI_SSH_KEY }}
-          script: |
+        env:
+          OCI_HOST: ${{ secrets.OCI_HOST }}
+          OCI_USERNAME: ${{ secrets.OCI_USERNAME }}
+          OCI_SSH_KEY: ${{ secrets.OCI_SSH_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DEFAULT_USER_PASSWORD: ${{ secrets.DEFAULT_USER_PASSWORD }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$OCI_SSH_KEY" > ~/.ssh/oci_key
+          chmod 600 ~/.ssh/oci_key
+
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/oci_key "${OCI_USERNAME}@${OCI_HOST}" <<'REMOTE'
             set -euo pipefail
 
             APP_ROOT="/var/www/amp.lucashussey.com"
@@ -68,10 +76,10 @@ jobs:
             mkdir -p "${SHARED_DIR}" "${WEB_DIST}"
             mkdir -p "${APP_ROOT}/releases"
 
-            cat > "${SHARED_DIR}/.env" <<'EOF'
-            DATABASE_URL=${{ secrets.DATABASE_URL }}
-            DEFAULT_USER_PASSWORD=${{ secrets.DEFAULT_USER_PASSWORD }}
-            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            cat > "${SHARED_DIR}/.env" <<EOF
+            DATABASE_URL=${DATABASE_URL}
+            DEFAULT_USER_PASSWORD=${DEFAULT_USER_PASSWORD}
+            JWT_SECRET=${JWT_SECRET}
             PORT=4000
             EOF
 
@@ -84,10 +92,11 @@ jobs:
             pnpm --dir apps/server build
             pnpm --dir apps/web build
 
-            rm -rf "${WEB_DIST}/*"
+            rm -rf "${WEB_DIST}"/*
             cp -R "apps/web/dist/." "${WEB_DIST}/"
 
             sudo systemctl daemon-reload
             sudo systemctl restart amp-api
             sudo nginx -t
             sudo systemctl reload nginx
+          REMOTE
