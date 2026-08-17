@@ -1,16 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { History, X } from "lucide-react";
+import { useEffect, useState } from "react";
 
-import { Button } from "@/components/ui/button";
-import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/components/ui/drawer";
 import {
   Table,
   TableBody,
@@ -20,6 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { apiFetch } from "@/lib/auth";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 
 type AuditLogEntry = {
   id?: string | number;
@@ -30,10 +20,8 @@ type AuditLogEntry = {
   to?: unknown;
 };
 
-interface SectionAuditHistorySheetProps {
+interface CustomerAuditLogsProps {
   customerId: string | number;
-  sectionLabel: string;
-  tableName: string;
 }
 
 const summarizeChange = (value: unknown) => {
@@ -63,11 +51,7 @@ const formatLogDate = (value?: string | null) => {
   });
 };
 
-export const SectionAuditHistorySheet = ({
-  customerId,
-  sectionLabel,
-  tableName,
-}: SectionAuditHistorySheetProps) => {
+export const CustomerAuditLogs = ({ customerId }: CustomerAuditLogsProps) => {
   const [logs, setLogs] = useState<AuditLogEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -96,72 +80,41 @@ export const SectionAuditHistorySheet = ({
     void fetchLogs();
   }, [customerId]);
 
-  const filteredLogs = useMemo(
-    () =>
-      logs.filter(
-        (log) =>
-          String(log.table_name ?? "").toLowerCase() ===
-          tableName.toLowerCase(),
-      ),
-    [logs, tableName],
-  );
-
-  if (!open) return null;
-
   return (
-    <Drawer swipeDirection="right" modal>
-      <DrawerTrigger
-        render={
-          <Button variant="outline" size="sm" className="gap-2">
-            <History className="h-3.5 w-3.5" />
-            History
-          </Button>
-        }
-      ></DrawerTrigger>
-      <DrawerContent className="rounded-none m-0 h-full w-full sm:max-w-sm sm:rounded-l-lg">
-        <DrawerHeader>
-          <div>
-            <div className="flex w-full justify-end text-muted-foreground">
-              <DrawerClose
-                render={
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label="Close history"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                }
-              />
-            </div>
-            <DrawerTitle>Audit history</DrawerTitle>
-            <DrawerDescription className="mt-2">
-              {sectionLabel}
-            </DrawerDescription>
+    <Card className="shadow-lg">
+      <CardHeader className="flex flex-row items-center justify-between gap-4">
+        <CardTitle className="text-xs uppercase tracking-[0.2em]">
+          Audit history
+        </CardTitle>
+        <div className="flex items-center gap-3">
+          <div className="text-sm text-muted-foreground">
+            {logs.length} log
+            {logs.length === 1 ? "" : "s"}
           </div>
-        </DrawerHeader>
+        </div>
+      </CardHeader>
 
+      <CardContent className="rounded-none m-0 h-full w-full">
         {isLoading ? (
           <div className="p-6 text-sm text-muted-foreground">
             Loading activity...
           </div>
-        ) : filteredLogs.length === 0 ? (
+        ) : logs.length === 0 ? (
           <div className="p-6 text-sm text-muted-foreground">
             No audit history found for this section.
           </div>
         ) : (
-          <div className="overflow-x-auto p-4">
+          <div className="space-y-3 overflow-y-scroll max-h-[300px]">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Action</TableHead>
-                  <TableHead>Table</TableHead>
                   <TableHead>Changes</TableHead>
                   <TableHead>Date</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredLogs.map((log) => (
+                {logs.map((log) => (
                   <TableRow
                     key={String(
                       log.id ?? `${log.action_type}-${log.created_at}`,
@@ -169,9 +122,6 @@ export const SectionAuditHistorySheet = ({
                   >
                     <TableCell className="font-medium capitalize">
                       {log.action_type ?? "updated"}
-                    </TableCell>
-                    <TableCell className="font-medium capitalize">
-                      {log.table_name ?? "-"}
                     </TableCell>
                     <TableCell className="max-w-[18rem] whitespace-pre-wrap break-words text-xs">
                       <div>{summarizeChange(log.from)}</div>
@@ -190,7 +140,7 @@ export const SectionAuditHistorySheet = ({
             </Table>
           </div>
         )}
-      </DrawerContent>
-    </Drawer>
+      </CardContent>
+    </Card>
   );
 };

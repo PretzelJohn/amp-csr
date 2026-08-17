@@ -11,7 +11,6 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { SectionAuditHistorySheet } from "@/components/customers/section-audit-history";
 import {
   useCustomerContext,
   type CustomerDetailRecord,
@@ -63,6 +62,14 @@ export const CustomerProfile = ({ customer }: CustomerProfileProps) => {
     setIsSaving(false);
   };
 
+  // If the updated_at timestamp is today, show the time; otherwise, show the date.
+  const updatedAt = customer.updated_at ? new Date(customer.updated_at) : null;
+  const formattedUpdatedAt = updatedAt
+    ? updatedAt.toDateString() === new Date().toDateString()
+      ? updatedAt.toLocaleTimeString()
+      : updatedAt.toLocaleDateString()
+    : "awhile ago";
+
   return (
     <Card className="shadow-lg">
       <CardHeader className="flex flex-row items-center justify-between gap-4">
@@ -72,12 +79,11 @@ export const CustomerProfile = ({ customer }: CustomerProfileProps) => {
             {customer.first_name} {customer.last_name}
           </CardTitle>
         </div>
-        <div className="flex items-center gap-3">
-          <SectionAuditHistorySheet
-            customerId={customer.id}
-            sectionLabel="Customer profile"
-            tableName="customers"
-          />
+        <div className="flex flex-col items-end gap-2">
+          <p className="text-xs text-muted-foreground">
+            Updated {formattedUpdatedAt}
+          </p>
+
           <Button
             variant="secondary"
             size="sm"
@@ -90,7 +96,7 @@ export const CustomerProfile = ({ customer }: CustomerProfileProps) => {
       </CardHeader>
 
       <CardContent>
-        <Form className="space-y-6">
+        <Form className="space-y-4">
           <div className="grid gap-4 md:grid-cols-4">
             <FormField>
               <FormItem>

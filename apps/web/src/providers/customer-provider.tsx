@@ -44,15 +44,16 @@ const normalizeCustomerDetail = (
 
   return {
     ...baseCustomer,
+    vehicles: Array.isArray(record.vehicles)
+      ? (record.vehicles as CustomerDetailRecord["vehicles"])
+      : [],
     subscriptions: Array.isArray(record.subscriptions)
       ? (record.subscriptions as SubscriptionRecord[])
       : [],
     purchaseHistory: Array.isArray(record.purchaseHistory)
       ? (record.purchaseHistory as PurchaseRecord[])
       : [],
-    notes: Array.isArray(record.notes)
-      ? (record.notes as NoteRecord[])
-      : [],
+    notes: Array.isArray(record.notes) ? (record.notes as NoteRecord[]) : [],
   };
 };
 
@@ -113,7 +114,7 @@ export function CustomerProvider({ children }: { children: ReactNode }) {
     async (query = search) => {
       const url =
         query.trim() !== ""
-          ? `/customers?search=${encodeURIComponent(query)}`
+          ? `/customers?q=${encodeURIComponent(query)}`
           : "/customers";
 
       const response = await apiFetch(url);

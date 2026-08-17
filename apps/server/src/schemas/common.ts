@@ -6,11 +6,13 @@ export const loginSchema = z.object({
 });
 
 export const paginationQuerySchema = z.object({
-  page: z.coerce.number().int().min(1).default(1),
-  pageSize: z.coerce.number().int().min(1).max(100).default(20),
-  search: z.string().trim().optional(),
+  limit: z.coerce.number().int().min(0).default(10),
+  offset: z.coerce.number().int().min(0).default(0),
+  q: z.string().trim().optional(),
 });
 
 export const customerIdParamSchema = z.object({
   customerId: z.coerce.number().int().positive(),
 });
+
+export type PaginationQuery = z.infer<typeof paginationQuerySchema>;

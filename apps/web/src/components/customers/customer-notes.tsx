@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { apiFetch } from "@/lib/auth";
-import { SectionAuditHistorySheet } from "@/components/customers/section-audit-history";
 
 export type CustomerNote = {
   id: string | number;
@@ -127,15 +126,8 @@ export const CustomerNotes = ({ customerId }: CustomerNotesProps) => {
         <CardTitle className="text-xs uppercase tracking-[0.2em]">
           Customer notes
         </CardTitle>
-        <div className="flex items-center gap-3">
-          <SectionAuditHistorySheet
-            customerId={customerId}
-            sectionLabel="Customer notes"
-            tableName="notes"
-          />
-          <div className="text-sm text-muted-foreground">
-            {sortedNotes.length} note{sortedNotes.length === 1 ? "" : "s"}
-          </div>
+        <div className="text-sm text-muted-foreground">
+          {sortedNotes.length} note{sortedNotes.length === 1 ? "" : "s"}
         </div>
       </CardHeader>
 

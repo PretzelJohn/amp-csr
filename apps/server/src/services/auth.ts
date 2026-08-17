@@ -5,8 +5,6 @@ import { createUserRepo } from "../repos/users.js";
 export type AuthUser = {
   id: number;
   email: string;
-  first_name: string;
-  last_name: string;
   roles: string[];
 };
 
@@ -53,8 +51,6 @@ export async function loginUser(input: { email: string; password: string }) {
     user: {
       id: user.id,
       email: user.email,
-      first_name: user.first_name,
-      last_name: user.last_name,
       roles: userRoles,
     } satisfies AuthUser,
   };
@@ -68,4 +64,21 @@ export async function verifyJwt(token: string) {
   });
 
   return payload;
+}
+
+export async function getUserById(userId: number) {
+  const userRepo = createUserRepo();
+  const user = await userRepo.getById(userId);
+
+  if (!user) {
+    throw new Error("User not found.");
+  }
+
+  return {
+    id: user.id,
+    first_name: user.first_name,
+    last_name: user.last_name,
+    email: user.email,
+    roles: user.usersToRoles.map((ur) => ur.role.name),
+  };
 }

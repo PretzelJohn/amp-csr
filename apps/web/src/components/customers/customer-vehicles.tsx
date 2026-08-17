@@ -9,7 +9,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { apiFetch } from "@/lib/auth";
-import { SectionAuditHistorySheet } from "@/components/customers/section-audit-history";
 
 export type CustomerVehicle = {
   id: number;
@@ -62,11 +61,6 @@ export const CustomerVehicles = ({ customerId }: CustomerVehiclesProps) => {
           Customer vehicles
         </CardTitle>
         <div className="flex items-center gap-3">
-          <SectionAuditHistorySheet
-            customerId={customerId}
-            sectionLabel="Customer vehicles"
-            tableName="vehicles"
-          />
           <div className="text-sm text-muted-foreground">
             {vehicles.length} vehicle{vehicles.length === 1 ? "" : "s"}
           </div>
@@ -83,9 +77,9 @@ export const CustomerVehicles = ({ customerId }: CustomerVehiclesProps) => {
             No vehicles found for this customer.
           </div>
         ) : (
-          <div className="space-y-3 overflow-y-scroll max-h-[300px]">
+          <div className="space-y-3 overflow-y-scroll max-h-[300px] p-1">
             {vehicles.map((vehicle) => (
-              <Card key={vehicle.id} className="p-4">
+              <Card key={vehicle.id}>
                 <CardContent>
                   <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                     <div>

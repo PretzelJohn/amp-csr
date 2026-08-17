@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { loginSchema } from "../schemas/common.js";
-import { loginUser } from "../services/auth.js";
+import { getUserById, loginUser } from "../services/auth.js";
 import { z } from "zod";
 
 export const authRoutes = new Hono();
@@ -34,9 +34,13 @@ authRoutes.get("/me", async (c) => {
   const user = c.get("user");
 
   try {
+    const storedUser = await getUserById(user.id);
+
     return c.json({
       user: {
-        id: user.id,
+        id: storedUser.id,
+        first_name: storedUser.first_name,
+        last_name: storedUser.last_name,
         email: user.email,
         roles: user.roles,
       },

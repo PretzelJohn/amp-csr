@@ -1,11 +1,18 @@
-import { createAuditLogRepo } from "../repos/audit-logs.js";
-import { createCustomerRepo } from "../repos/customers.js";
-import { createNoteRepo } from "../repos/notes.js";
-import { createSubscriptionPaymentRepo } from "../repos/subscription-payments.js";
-import { createSubscriptionRepo } from "../repos/subscriptions.js";
-import { createVehicleRepo } from "../repos/vehicles.js";
+import { createAuditLogRepo, AuditLog } from "../repos/audit-logs.js";
+import { createCustomerRepo, Customer } from "../repos/customers.js";
+import {
+  createSubscriptionRepo,
+  Subscription,
+} from "../repos/subscriptions.js";
+import {
+  createSubscriptionPaymentRepo,
+  PaymentWithSubscription,
+} from "../repos/subscription-payments.js";
+import { createNoteRepo, Note } from "../repos/notes.js";
+import { createVehicleRepo, Vehicle } from "../repos/vehicles.js";
 import { withTransaction } from "../repos/utils.js";
-import { createPurchaseRepo } from "../repos/purchases.js";
+import { createPurchaseRepo, Purchase } from "../repos/purchases.js";
+import { PaginationQuery } from "../schemas/common.js";
 
 export type CustomerListItem = {
   id: number;
@@ -16,59 +23,37 @@ export type CustomerListItem = {
 };
 
 export type CustomerDetail = {
-  customer: Awaited<
-    ReturnType<ReturnType<typeof createCustomerRepo>["getById"]>
-  >;
-  vehicles: Awaited<
-    ReturnType<ReturnType<typeof createVehicleRepo>["listByCustomer"]>
-  >;
-  subscriptions: Awaited<
-    ReturnType<ReturnType<typeof createSubscriptionRepo>["listByCustomer"]>
-  >;
-  payments: Awaited<
-    ReturnType<
-      ReturnType<typeof createSubscriptionPaymentRepo>["listByCustomer"]
-    >
-  >;
-  notes: Awaited<
-    ReturnType<ReturnType<typeof createNoteRepo>["listByCustomer"]>
-  >;
-  auditLogs: Awaited<
-    ReturnType<ReturnType<typeof createAuditLogRepo>["listByCustomer"]>
-  >;
+  customer: Customer | null;
+  vehicles: Vehicle[];
+  subscriptions: Subscription[];
+  payments: PaymentWithSubscription[];
+  purchases: Purchase[];
+  notes: Note[];
+  auditLogs: AuditLog[];
 };
 
 export const customerService = {
-  async list({
-    page,
-    pageSize,
-    search,
-  }: {
-    page: number;
-    pageSize: number;
-    search?: string;
-  }) {
+  async list({ limit, offset, q }: PaginationQuery) {
     const customerRepo = createCustomerRepo();
     const customers = await customerRepo.list();
 
-    const filtered = search
+    const filtered = q
       ? customers.filter((customer) => {
           const haystack =
             `${customer.first_name} ${customer.last_name} ${customer.email} ${customer.phone}`.toLowerCase();
-          return haystack.includes(search.toLowerCase());
+          return haystack.includes(q.toLowerCase());
         })
       : customers;
 
     const total = filtered.length;
-    const offset = (page - 1) * pageSize;
-    const items = filtered.slice(offset, offset + pageSize);
+    const items = filtered.slice(offset, offset + limit);
 
     return {
       items,
-      page,
-      pageSize,
+      limit,
+      offset,
       total,
-      totalPages: Math.max(1, Math.ceil(total / pageSize)),
+      totalPages: Math.max(1, Math.ceil(total / limit)),
     };
   },
 
@@ -77,24 +62,34 @@ export const customerService = {
     const vehicleRepo = createVehicleRepo();
     const subscriptionRepo = createSubscriptionRepo();
     const paymentRepo = createSubscriptionPaymentRepo();
+    const purchasesRepo = createPurchaseRepo();
     const noteRepo = createNoteRepo();
     const auditLogRepo = createAuditLogRepo();
 
-    const [customer, vehicles, subscriptions, payments, notes, auditLogs] =
-      await Promise.all([
-        customerRepo.getById(customerId),
-        vehicleRepo.listByCustomer(customerId),
-        subscriptionRepo.listByCustomer(customerId),
-        paymentRepo.listByCustomer(customerId),
-        noteRepo.listByCustomer(customerId),
-        auditLogRepo.listByCustomer(customerId),
-      ]);
+    const [
+      customer,
+      vehicles,
+      subscriptions,
+      payments,
+      purchases,
+      notes,
+      auditLogs,
+    ] = await Promise.all([
+      customerRepo.getById(customerId),
+      vehicleRepo.listByCustomer(customerId),
+      subscriptionRepo.listByCustomer(customerId),
+      paymentRepo.listByCustomer(customerId),
+      purchasesRepo.listByCustomer(customerId),
+      noteRepo.listByCustomer(customerId),
+      auditLogRepo.listByCustomer(customerId),
+    ]);
 
     return {
       customer,
       vehicles,
       subscriptions,
       payments,
+      purchases,
       notes,
       auditLogs,
     } satisfies CustomerDetail;

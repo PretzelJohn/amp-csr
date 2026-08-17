@@ -1,8 +1,8 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/auth";
+import { formatCurrency, formatDate } from "@/lib/utils";
 import { useEffect, useState } from "react";
-import { SectionAuditHistorySheet } from "./section-audit-history";
 
 export type CustomerPurchase = {
   id: string | number;
@@ -34,26 +34,6 @@ type PurchaseApiRecord = {
 interface CustomerPurchasesProps {
   customerId: string | number;
 }
-
-const formatCurrency = (value: number) =>
-  new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  }).format(value);
-
-const formatDate = (value: string) => {
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return date.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-};
 
 const statusVariant = (status: string) => {
   switch (status.toLowerCase()) {
@@ -131,11 +111,6 @@ export const CustomerPurchases = ({ customerId }: CustomerPurchasesProps) => {
           Customer purchase history
         </CardTitle>
         <div className="text-sm text-muted-foreground">
-          <SectionAuditHistorySheet
-            customerId={customerId}
-            sectionLabel="Customer purchases"
-            tableName="purchases"
-          />
           {purchases.length} item{purchases.length === 1 ? "" : "s"}
         </div>
       </CardHeader>
@@ -146,7 +121,7 @@ export const CustomerPurchases = ({ customerId }: CustomerPurchasesProps) => {
             No purchase history for this customer.
           </div>
         ) : (
-          <div className="space-y-3 overflow-y-scroll max-h-[300px]">
+          <div className="space-y-3 overflow-y-scroll max-h-[300px] p-1">
             {purchases.map((purchase) => (
               <Card key={String(purchase.id)} className="p-0">
                 <CardContent className="p-4">

@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/auth";
-import { SectionAuditHistorySheet } from "@/components/customers/section-audit-history";
 
 export type CustomerSubscription = {
   id: number | string;
@@ -88,11 +87,6 @@ export const CustomerSubscriptions = ({
           Customer subscriptions
         </CardTitle>
         <div className="flex items-center gap-3">
-          <SectionAuditHistorySheet
-            customerId={customerId}
-            sectionLabel="Customer subscriptions"
-            tableName="subscriptions"
-          />
           <div className="text-sm text-muted-foreground">
             {subscriptions.length} active record
             {subscriptions.length === 1 ? "" : "s"}
