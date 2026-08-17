@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@hono/node-server": "^2.1.0",
+    "bcrypt": "^6.0.0",
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
     "drizzle-seed": "^0.3.1",
@@ -28,6 +29,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
     "@types/node": "^22.10.2",
     "@types/pg": "^8.21.0",
     "drizzle-kit": "^0.31.10",

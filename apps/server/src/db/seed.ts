@@ -8,11 +8,56 @@ import {
   purchasesTable,
   notesTable,
   auditLogsTable,
+  rolesTable,
+  usersTable,
+  usersToRolesTable,
 } from "./schema.js";
 import { exit } from "process";
+import { hashPassword } from "../lib/passwords.js";
 
 async function seedDatabase() {
   console.log("Seeding database...");
+
+  console.log("Seeding roles table...");
+  await seed(db, { rolesTable }, { seed: 12345 }).refine((f) => ({
+    rolesTable: {
+      count: 1,
+      columns: {
+        name: f.valuesFromArray({ values: ["user"] }),
+        description: f.valuesFromArray({ values: ["User role"] }),
+      },
+    },
+  }));
+
+  console.log("Seeding users table...");
+  const defaultPassword = process.env.DEFAULT_USER_PASSWORD;
+  if (defaultPassword) {
+    const hashedPassword = await hashPassword(defaultPassword);
+    await seed(db, { usersTable }, { seed: 12345 }).refine((f) => ({
+      usersTable: {
+        count: 1,
+        columns: {
+          first_name: f.valuesFromArray({ values: ["Default"] }),
+          last_name: f.valuesFromArray({ values: ["User"] }),
+          email: f.valuesFromArray({ values: ["user@example.com"] }),
+          password_hash: f.valuesFromArray({
+            values: [hashedPassword],
+          }),
+        },
+      },
+    }));
+  } else {
+    console.error(
+      "DEFAULT_USER_PASSWORD environment variable is not set. Please set it before running the seed script to create a default user account.",
+    );
+    exit(1);
+  }
+
+  console.log("Seeding users_to_roles table...");
+  await db.insert(usersToRolesTable).values({
+    user_id: 1,
+    role_id: 1,
+  });
 
   console.log("Seeding customers table...");
   await seed(db, { customersTable }, { seed: 12345 }).refine((f) => ({
@@ -119,6 +164,7 @@ async function seedDatabase() {
     auditLogsTable: {
       count: 200,
       columns: {
+        user_id: f.int({ minValue: 1, maxValue: 1 }),
         customer_id: f.int({ minValue: 1, maxValue: 10 }),
         table_name: f.valuesFromArray({
           values: [

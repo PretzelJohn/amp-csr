@@ -103,6 +103,7 @@ describe("auditLogRepo", () => {
     vi.mocked(db.insert).mockReturnValue(insertChain as never);
 
     const result = await auditLogRepo.create({
+      user_id: 1,
       customer_id: 3,
       table_name: "customers",
       record_id: 3,
@@ -113,6 +114,7 @@ describe("auditLogRepo", () => {
 
     expect(result).toEqual(created[0]);
     expect(insertChain.values).toHaveBeenCalledWith({
+      user_id: 1,
       customer_id: 3,
       table_name: "customers",
       record_id: 3,

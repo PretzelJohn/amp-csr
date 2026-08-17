@@ -35,6 +35,7 @@ export const createAuditLogRepo: CreateRepoFunction<AuditLogRepo> = (
       const rows = await executor
         .insert(auditLogsTable)
         .values({
+          user_id: input.user_id,
           customer_id: input.customer_id,
           table_name: input.table_name,
           record_id: input.record_id,

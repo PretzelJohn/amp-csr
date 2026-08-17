@@ -11,6 +11,7 @@ type NoteRepo = {
   getById(id: number): Promise<Note | null>;
   create(input: NoteInput): Promise<Note | null>;
   update(id: number, input: Partial<NoteInput>): Promise<Note | null>;
+  delete(id: number): Promise<void>;
 };
 
 export const createNoteRepo: CreateRepoFunction<NoteRepo> = (
@@ -58,6 +59,10 @@ export const createNoteRepo: CreateRepoFunction<NoteRepo> = (
         .returning();
 
       return rows[0] ?? null;
+    },
+
+    async delete(id: number): Promise<void> {
+      await executor.delete(notesTable).where(eq(notesTable.id, id));
     },
   };
 };
