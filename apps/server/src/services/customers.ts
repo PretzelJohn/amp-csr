@@ -130,27 +130,65 @@ export const customerService = {
     });
   },
 
-  async updateNote(customerId: number, noteId: number, note: string) {
-    const noteRepo = createNoteRepo();
-    const existing = await noteRepo.getById(noteId);
+  async updateNote(
+    userId: number,
+    customerId: number,
+    noteId: number,
+    note: string,
+  ) {
+    return withTransaction(async (tx) => {
+      const noteRepo = createNoteRepo(tx);
+      const auditLogRepo = createAuditLogRepo(tx);
 
-    if (!existing || existing.customer_id !== customerId) {
-      return null;
-    }
+      const existing = await noteRepo.getById(noteId);
 
-    return noteRepo.update(noteId, { note });
+      if (!existing || existing.customer_id !== customerId) {
+        return null;
+      }
+
+      const updatedNote = await noteRepo.update(noteId, { note });
+
+      //insert audit log
+      await auditLogRepo.create({
+        user_id: userId,
+        customer_id: customerId,
+        table_name: "notes",
+        record_id: noteId,
+        action_type: "update",
+        from: existing,
+        to: updatedNote,
+      });
+
+      return updatedNote;
+    });
   },
 
-  async deleteNote(customerId: number, noteId: number) {
-    const noteRepo = createNoteRepo();
-    const existing = await noteRepo.getById(noteId);
+  async deleteNote(userId: number, customerId: number, noteId: number) {
+    return withTransaction(async (tx) => {
+      const noteRepo = createNoteRepo(tx);
+      const auditLogRepo = createAuditLogRepo(tx);
 
-    if (!existing || existing.customer_id !== customerId) {
-      return false;
-    }
+      const existing = await noteRepo.getById(noteId);
 
-    await noteRepo.delete(noteId);
-    return true;
+      if (!existing || existing.customer_id !== customerId) {
+        return false;
+      }
+
+      await noteRepo.delete(noteId);
+
+      //insert audit log
+      await auditLogRepo.create({
+        user_id: userId,
+        customer_id: customerId,
+        table_name: "notes",
+        record_id: noteId,
+        action_type: "delete",
+        from: existing,
+        to: null,
+      });
+
+      return true;
+    });
   },
 
   async getPurchases(customerId: number) {

@@ -18,6 +18,12 @@ vi.mock("../db/schema.js", () => ({
     created_at: "vehicles.created_at",
     updated_at: "vehicles.updated_at",
   },
+  vehicleOwnersTable: {
+    vehicle_id: "vehicle_owners.vehicle_id",
+    customer_id: "vehicle_owners.customer_id",
+    created_at: "vehicle_owners.created_at",
+    updated_at: "vehicle_owners.updated_at",
+  },
   subscriptionsTable: {
     id: "subscriptions.id",
     customer_id: "subscriptions.customer_id",
@@ -55,7 +61,7 @@ describe("vehicleData", () => {
     vi.clearAllMocks();
   });
 
-  it("lists vehicles for a customer through subscriptions", async () => {
+  it("lists vehicles owned by a customer", async () => {
     const expectedVehicles = [{ id: 7, make: "Toyota", model: "Camry" }];
     const selectChain = makeSelectQuery([{ vehicle: expectedVehicles[0] }]);
     vi.mocked(db.select).mockReturnValue(selectChain as never);

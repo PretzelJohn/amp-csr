@@ -2,8 +2,15 @@ import { createAuditLogRepo } from "../repos/audit-logs.js";
 import { createSubscriptionPaymentRepo } from "../repos/subscription-payments.js";
 import { createSubscriptionRepo } from "../repos/subscriptions.js";
 import { withTransaction } from "../repos/utils.js";
+import { createVehicleRepo } from "../repos/vehicles.js";
 
-const validStatuses = new Set(["active", "paused", "overdue", "expired"]);
+const validStatuses = new Set([
+  "active",
+  "paused",
+  "overdue",
+  "expired",
+  "cancelled",
+]);
 
 export const subscriptionService = {
   async getByCustomer(customerId: number) {
@@ -27,6 +34,7 @@ export const subscriptionService = {
   },
 
   async createForCustomer(
+    userId: number,
     customerId: number,
     subscription: {
       vehicle_id: number;
@@ -66,7 +74,7 @@ export const subscriptionService = {
       }
 
       await auditLogRepo.create({
-        user_id: 1,
+        user_id: userId,
         customer_id: customerId,
         table_name: "subscriptions",
         record_id: created.id,
@@ -80,6 +88,7 @@ export const subscriptionService = {
   },
 
   async transferSubscriptionToVehicle(
+    userId: number,
     subscriptionId: number,
     targetVehicleId: number,
   ) {
@@ -92,11 +101,17 @@ export const subscriptionService = {
 
     return withTransaction(async (tx) => {
       const subscriptionRepo = createSubscriptionRepo(tx);
+      const vehicleRepo = createVehicleRepo(tx);
       const auditLogRepo = createAuditLogRepo(tx);
 
       const previous = await subscriptionRepo.getById(subscriptionId);
       if (!previous) {
         throw new Error("Subscription not found");
+      }
+
+      const targetVehicle = await vehicleRepo.getById(targetVehicleId);
+      if (!targetVehicle) {
+        throw new Error("Target vehicle not found");
       }
 
       const updated = await subscriptionRepo.update(subscriptionId, {
@@ -107,7 +122,7 @@ export const subscriptionService = {
       }
 
       await auditLogRepo.create({
-        user_id: 1,
+        user_id: userId,
         customer_id: updated.customer_id,
         table_name: "subscriptions",
         record_id: subscriptionId,
@@ -120,7 +135,11 @@ export const subscriptionService = {
     });
   },
 
-  async updateStatus(subscriptionId: number, nextStatus: string) {
+  async updateStatus(
+    userId: number,
+    subscriptionId: number,
+    nextStatus: string,
+  ) {
     if (!validStatuses.has(nextStatus)) {
       throw new Error(`Unsupported subscription status: ${nextStatus}`);
     }
@@ -142,7 +161,7 @@ export const subscriptionService = {
       }
 
       await auditLogRepo.create({
-        user_id: 1,
+        user_id: userId,
         customer_id: updated.customer_id,
         table_name: "subscriptions",
         record_id: subscriptionId,

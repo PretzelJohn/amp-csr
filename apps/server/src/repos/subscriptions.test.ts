@@ -10,6 +10,7 @@ vi.mock("../db/index.js", () => ({
     select: vi.fn(),
     update: vi.fn(),
     insert: vi.fn(),
+    delete: vi.fn(),
   },
 }));
 
@@ -131,5 +132,18 @@ describe("subscriptionData", () => {
       plan: "Premium",
       updated_at: expect.any(Date),
     });
+  });
+
+  it("deletes a subscription record", async () => {
+    const deleteChain = {
+      where: vi.fn().mockReturnThis(),
+      returning: vi.fn().mockResolvedValue([{ id: 11, customer_id: 3 }]),
+    };
+    vi.mocked(db.delete).mockReturnValue(deleteChain as never);
+
+    const result = await subscriptionRepo.delete(11);
+
+    expect(result).toEqual({ id: 11, customer_id: 3 });
+    expect(deleteChain.where).toHaveBeenCalledTimes(1);
   });
 });

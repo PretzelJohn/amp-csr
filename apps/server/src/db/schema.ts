@@ -156,6 +156,21 @@ export const vehiclesTable = pgTable("vehicles", {
   ...timestamps,
 });
 
+//vehicle owners table: stores the ownership data of vehicles per customer
+export const vehicleOwnersTable = pgTable(
+  "vehicle_owners",
+  {
+    vehicle_id: integer()
+      .notNull()
+      .references(() => vehiclesTable.id),
+    customer_id: integer()
+      .notNull()
+      .references(() => customersTable.id),
+    ...timestamps,
+  },
+  (t) => [primaryKey({ columns: [t.vehicle_id, t.customer_id] })],
+);
+
 //RELATIONS - sets up drizzle ORM relations between tables for easier querying and joins
 
 //customers -> notes 1:M

@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogClose,
@@ -94,6 +95,10 @@ const statusVariant = (status: string) => {
       return "secondary";
     case "paused":
       return "outline";
+    case "overdue":
+      return "destructive";
+    case "expired":
+      return "outline";
     case "cancelled":
       return "destructive";
     default:
@@ -113,6 +118,14 @@ export const CustomerSubscriptions = ({
   >({});
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [newSubscription, setNewSubscription] = useState({
+    vehicleId: "",
+    plan: "",
+    starts_at: "",
+    ends_at: "",
+    status: "active",
+  });
   const [transferSubscription, setTransferSubscription] =
     useState<CustomerSubscription | null>(null);
 
@@ -193,6 +206,37 @@ export const CustomerSubscriptions = ({
     );
   }, [fetchPaymentHistory, subscriptions]);
 
+  const transferOptions = useMemo(() => {
+    if (!transferSubscription) {
+      return [] as CustomerVehicle[];
+    }
+
+    const seen = new Set<number>();
+    const options: CustomerVehicle[] = [];
+
+    const pushVehicle = (vehicle?: CustomerVehicle | null) => {
+      if (!vehicle) {
+        return;
+      }
+
+      const vehicleId = Number(vehicle.id);
+      if (!Number.isFinite(vehicleId) || seen.has(vehicleId)) {
+        return;
+      }
+
+      seen.add(vehicleId);
+      options.push(vehicle);
+    };
+
+    pushVehicle(transferSubscription.vehicle);
+    vehicles.forEach((vehicle) => pushVehicle(vehicle));
+
+    return options.filter(
+      (vehicle) =>
+        Number(vehicle.id) !== Number(transferSubscription.vehicle_id),
+    );
+  }, [transferSubscription, vehicles]);
+
   const handleStatusChange = async (
     subscriptionId: number | string,
     nextStatus: string,
@@ -233,6 +277,43 @@ export const CustomerSubscriptions = ({
     }
   };
 
+  const handleCreateSubscription = async () => {
+    const vehicleId = Number(newSubscription.vehicleId);
+    const plan = newSubscription.plan.trim();
+
+    if (!Number.isFinite(vehicleId) || vehicleId <= 0 || !plan) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await apiFetch(`/customers/${String(customerId)}/subscriptions`, {
+        method: "POST",
+        data: {
+          vehicle_id: vehicleId,
+          plan,
+          starts_at: newSubscription.starts_at || undefined,
+          ends_at: newSubscription.ends_at || undefined,
+          status: newSubscription.status,
+        },
+      });
+
+      setIsCreateDialogOpen(false);
+      setNewSubscription({
+        vehicleId: "",
+        plan: "",
+        starts_at: "",
+        ends_at: "",
+        status: "active",
+      });
+      await Promise.all([fetchSubscriptions(), fetchVehicles()]);
+    } catch {
+      // no-op
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <>
       <Card className="shadow-lg">
@@ -245,6 +326,14 @@ export const CustomerSubscriptions = ({
               {subscriptions.length} subscription
               {subscriptions.length === 1 ? "" : "s"}
             </div>
+            <Button
+              size="sm"
+              variant="default"
+              onClick={() => setIsCreateDialogOpen(true)}
+              disabled={vehicles.length === 0 || isSubmitting}
+            >
+              Add subscription
+            </Button>
           </div>
         </CardHeader>
 
@@ -263,8 +352,16 @@ export const CustomerSubscriptions = ({
                 const vehicle = subscription.vehicle;
                 const isActive = subscription.status.toLowerCase() === "active";
                 const isPaused = subscription.status.toLowerCase() === "paused";
+                const isOverdue =
+                  subscription.status.toLowerCase() === "overdue";
+                const isExpired =
+                  subscription.status.toLowerCase() === "expired";
                 const statusIsCancelled =
                   subscription.status.toLowerCase() === "cancelled";
+                const canMarkOverdue =
+                  !statusIsCancelled && (isActive || isPaused);
+                const canResolveIssue =
+                  !statusIsCancelled && (isOverdue || isExpired);
                 const history = paymentHistory[String(subscription.id)] ?? [];
                 const latestPayment = history[0];
 
@@ -379,6 +476,32 @@ export const CustomerSubscriptions = ({
                           </Button>
                         ) : null}
 
+                        {canMarkOverdue ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={isSubmitting}
+                            onClick={() =>
+                              handleStatusChange(subscription.id, "overdue")
+                            }
+                          >
+                            Mark overdue
+                          </Button>
+                        ) : null}
+
+                        {canResolveIssue ? (
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            disabled={isSubmitting}
+                            onClick={() =>
+                              handleStatusChange(subscription.id, "active")
+                            }
+                          >
+                            Resolve issue
+                          </Button>
+                        ) : null}
+
                         {!statusIsCancelled ? (
                           <Button
                             size="sm"
@@ -415,6 +538,135 @@ export const CustomerSubscriptions = ({
       </Card>
 
       <Dialog
+        open={isCreateDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setIsCreateDialogOpen(false);
+            setNewSubscription({
+              vehicleId: "",
+              plan: "",
+              starts_at: "",
+              ends_at: "",
+              status: "active",
+            });
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add subscription</DialogTitle>
+            <DialogDescription>
+              Create a new membership for this customer and assign it to one of
+              their owned vehicles.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Owned vehicle</label>
+              <select
+                value={newSubscription.vehicleId}
+                onChange={(event) =>
+                  setNewSubscription((current) => ({
+                    ...current,
+                    vehicleId: event.target.value,
+                  }))
+                }
+                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+              >
+                <option value="">Select an owned vehicle</option>
+                {vehicles.map((vehicle) => (
+                  <option key={vehicle.id} value={String(vehicle.id)}>
+                    {vehicle.year} {vehicle.make} {vehicle.model} (
+                    {vehicle.license_plate.toUpperCase()})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Plan</label>
+              <Input
+                value={newSubscription.plan}
+                onChange={(event) =>
+                  setNewSubscription((current) => ({
+                    ...current,
+                    plan: event.target.value,
+                  }))
+                }
+                placeholder="e.g. Unlimited Wash"
+              />
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Starts</label>
+                <Input
+                  type="date"
+                  value={newSubscription.starts_at}
+                  onChange={(event) =>
+                    setNewSubscription((current) => ({
+                      ...current,
+                      starts_at: event.target.value,
+                    }))
+                  }
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Ends</label>
+                <Input
+                  type="date"
+                  value={newSubscription.ends_at}
+                  onChange={(event) =>
+                    setNewSubscription((current) => ({
+                      ...current,
+                      ends_at: event.target.value,
+                    }))
+                  }
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Status</label>
+              <select
+                value={newSubscription.status}
+                onChange={(event) =>
+                  setNewSubscription((current) => ({
+                    ...current,
+                    status: event.target.value,
+                  }))
+                }
+                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+              >
+                <option value="active">Active</option>
+                <option value="paused">Paused</option>
+                <option value="overdue">Overdue</option>
+                <option value="expired">Expired</option>
+              </select>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <DialogClose>
+              <Button variant="secondary">Cancel</Button>
+            </DialogClose>
+            <Button
+              onClick={() => void handleCreateSubscription()}
+              disabled={
+                !newSubscription.vehicleId ||
+                !newSubscription.plan.trim() ||
+                isSubmitting
+              }
+            >
+              {isSubmitting ? "Saving..." : "Create subscription"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
         open={transferSubscription !== null}
         onOpenChange={(open) => {
           if (!open) setTransferSubscription(null);
@@ -424,46 +676,36 @@ export const CustomerSubscriptions = ({
           <DialogHeader>
             <DialogTitle>Transfer subscription</DialogTitle>
             <DialogDescription>
-              Choose a vehicle for this customer to transfer the subscription
-              to.
+              Choose another owned vehicle for this customer to move the
+              subscription to.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-2 py-2">
             {transferSubscription
-              ? vehicles
-                  .filter(
-                    (vehicle) =>
-                      Number(vehicle.id) !==
-                      Number(transferSubscription.vehicle_id),
-                  )
-                  .map((vehicle) => (
-                    <Button
-                      key={vehicle.id}
-                      variant="outline"
-                      className="w-full justify-between"
-                      onClick={() =>
-                        void handleTransfer(
-                          transferSubscription.id,
-                          Number(vehicle.id),
-                        )
-                      }
-                    >
-                      <span>
-                        {vehicle.year} {vehicle.make} {vehicle.model}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {vehicle.license_plate.toUpperCase()}
-                      </span>
-                    </Button>
-                  ))
+              ? transferOptions.map((vehicle) => (
+                  <Button
+                    key={vehicle.id}
+                    variant="outline"
+                    className="w-full justify-between"
+                    onClick={() =>
+                      void handleTransfer(
+                        transferSubscription.id,
+                        Number(vehicle.id),
+                      )
+                    }
+                  >
+                    <span>
+                      {vehicle.year} {vehicle.make} {vehicle.model}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {vehicle.license_plate.toUpperCase()}
+                    </span>
+                  </Button>
+                ))
               : null}
 
-            {transferSubscription &&
-            vehicles.filter(
-              (vehicle) =>
-                Number(vehicle.id) !== Number(transferSubscription.vehicle_id),
-            ).length === 0 ? (
+            {transferSubscription && transferOptions.length === 0 ? (
               <div className="rounded-xl border p-3 text-sm text-muted-foreground">
                 No alternate vehicle is available for this customer.
               </div>

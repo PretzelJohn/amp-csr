@@ -25,6 +25,7 @@ type SubscriptionRepo = {
     id: number,
     input: Partial<SubscriptionInput>,
   ): Promise<Subscription | null>;
+  delete(id: number): Promise<Subscription | null>;
 };
 
 export const createSubscriptionRepo: CreateRepoFunction<SubscriptionRepo> = (
@@ -93,6 +94,15 @@ export const createSubscriptionRepo: CreateRepoFunction<SubscriptionRepo> = (
           ...input,
           updated_at: new Date(),
         })
+        .where(eq(subscriptionsTable.id, id))
+        .returning();
+
+      return rows[0] ?? null;
+    },
+
+    async delete(id: number): Promise<Subscription | null> {
+      const rows = await executor
+        .delete(subscriptionsTable)
         .where(eq(subscriptionsTable.id, id))
         .returning();
 

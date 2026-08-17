@@ -62,6 +62,7 @@ customerRoutes.post("/:customerId/notes", async (c) => {
 });
 
 customerRoutes.patch("/:customerId/notes/:noteId", async (c) => {
+  const user = c.get("user");
   const { customerId } = customerIdParamSchema.parse({
     customerId: c.req.param("customerId"),
   });
@@ -78,7 +79,12 @@ customerRoutes.patch("/:customerId/notes/:noteId", async (c) => {
     return c.json({ error: "Note is required" }, 400);
   }
 
-  const updated = await customerService.updateNote(customerId, noteId, note);
+  const updated = await customerService.updateNote(
+    user.id,
+    customerId,
+    noteId,
+    note,
+  );
   if (!updated) {
     return c.json({ error: "Note not found" }, 404);
   }
@@ -87,6 +93,7 @@ customerRoutes.patch("/:customerId/notes/:noteId", async (c) => {
 });
 
 customerRoutes.delete("/:customerId/notes/:noteId", async (c) => {
+  const user = c.get("user");
   const { customerId } = customerIdParamSchema.parse({
     customerId: c.req.param("customerId"),
   });
@@ -96,7 +103,7 @@ customerRoutes.delete("/:customerId/notes/:noteId", async (c) => {
     return c.json({ error: "Invalid note id" }, 400);
   }
 
-  const deleted = await customerService.deleteNote(customerId, noteId);
+  const deleted = await customerService.deleteNote(user.id, customerId, noteId);
   if (!deleted) {
     return c.json({ error: "Note not found" }, 404);
   }
@@ -113,6 +120,7 @@ customerRoutes.get("/:customerId/subscriptions", async (c) => {
 });
 
 customerRoutes.post("/:customerId/subscriptions", async (c) => {
+  const user = c.get("user");
   const { customerId } = customerIdParamSchema.parse({
     customerId: c.req.param("customerId"),
   });

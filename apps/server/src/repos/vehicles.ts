@@ -1,6 +1,10 @@
 import { desc, eq } from "drizzle-orm";
 import { db } from "../db/index.js";
-import { subscriptionsTable, vehiclesTable } from "../db/schema.js";
+import {
+  subscriptionsTable,
+  vehicleOwnersTable,
+  vehiclesTable,
+} from "../db/schema.js";
 import { CreateRepoFunction, DbExecutor } from "./types.js";
 
 export type Vehicle = typeof vehiclesTable.$inferSelect;
@@ -22,10 +26,10 @@ export const createVehicleRepo: CreateRepoFunction<VehicleRepo> = (
         .select({ vehicle: vehiclesTable })
         .from(vehiclesTable)
         .innerJoin(
-          subscriptionsTable,
-          eq(subscriptionsTable.vehicle_id, vehiclesTable.id),
+          vehicleOwnersTable,
+          eq(vehicleOwnersTable.vehicle_id, vehiclesTable.id),
         )
-        .where(eq(subscriptionsTable.customer_id, customerId))
+        .where(eq(vehicleOwnersTable.customer_id, customerId))
         .orderBy(desc(vehiclesTable.created_at));
 
       return rows.map((row) => row.vehicle);

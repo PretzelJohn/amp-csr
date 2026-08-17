@@ -23,6 +23,7 @@ subscriptionRoutes.get("/:subscriptionId/payments", async (c) => {
 });
 
 subscriptionRoutes.patch("/:subscriptionId/status", async (c) => {
+  const user = c.get("user");
   const subscriptionId = Number(c.req.param("subscriptionId"));
   if (!Number.isFinite(subscriptionId) || subscriptionId <= 0) {
     return c.json({ error: "Invalid subscriptionId" }, 400);
@@ -32,6 +33,7 @@ subscriptionRoutes.patch("/:subscriptionId/status", async (c) => {
   const { status } = body as { status?: string };
 
   const updated = await subscriptionService.updateStatus(
+    user.id,
     subscriptionId,
     status ?? "active",
   );
@@ -39,6 +41,7 @@ subscriptionRoutes.patch("/:subscriptionId/status", async (c) => {
 });
 
 subscriptionRoutes.post("/:subscriptionId/transfer", async (c) => {
+  const user = c.get("user");
   const body = await c.req.json().catch(() => ({}));
   const subscriptionId = Number(c.req.param("subscriptionId"));
   const vehicleId = Number(body.vehicle_id);
@@ -52,6 +55,7 @@ subscriptionRoutes.post("/:subscriptionId/transfer", async (c) => {
   }
 
   const updated = await subscriptionService.transferSubscriptionToVehicle(
+    user.id,
     subscriptionId,
     vehicleId,
   );

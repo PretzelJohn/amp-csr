@@ -9,6 +9,7 @@ import {
   rolesTable,
   usersTable,
   usersToRolesTable,
+  vehicleOwnersTable,
 } from "./schema.js";
 import { exit } from "process";
 import { hashPassword } from "../lib/passwords.js";
@@ -93,6 +94,17 @@ async function seedDatabase() {
           ],
         }),
         license_plate: f.string({ isUnique: true }),
+      },
+    },
+  }));
+
+  console.log("Seeding vehicle owners table...");
+  await seed(db, { vehicleOwnersTable }, { seed: SEED }).refine((f) => ({
+    vehicleOwnersTable: {
+      count: 20,
+      columns: {
+        vehicle_id: f.int({ minValue: 1, maxValue: 20 }),
+        customer_id: f.int({ minValue: 1, maxValue: 10 }),
       },
     },
   }));
