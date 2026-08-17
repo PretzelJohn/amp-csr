@@ -10,7 +10,7 @@ export type AuthUser = {
   email: string;
   first_name: string;
   last_name: string;
-  role: string;
+  roles: string[];
 };
 
 const api = axios.create({
@@ -75,11 +75,6 @@ export async function loginWithEmail(email: string, password: string) {
   const response = await api.post<{ access_token: string; user: AuthUser }>(
     "/auth/login",
     { email, password },
-    {
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-    },
   );
 
   const payload = response.data;

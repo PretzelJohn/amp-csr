@@ -4,16 +4,18 @@ import { createUserRepo } from "../repos/users.js";
 
 export type AuthUser = {
   id: number;
+  first_name: string;
+  last_name: string;
   email: string;
   roles: string[];
 };
 
-const JWT_SECRET = process.env.JWT_SECRET;
-const JWT_SECRET_BYTES = new TextEncoder().encode(JWT_SECRET);
-
+export const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
   throw new Error("JWT_SECRET environment variable is not set.");
 }
+
+const JWT_SECRET_BYTES = new TextEncoder().encode(JWT_SECRET);
 
 export async function loginUser(input: { email: string; password: string }) {
   const userRepo = createUserRepo();
@@ -50,6 +52,8 @@ export async function loginUser(input: { email: string; password: string }) {
     access_token: token,
     user: {
       id: user.id,
+      first_name: user.first_name,
+      last_name: user.last_name,
       email: user.email,
       roles: userRoles,
     } satisfies AuthUser,

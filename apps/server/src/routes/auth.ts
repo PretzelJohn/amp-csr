@@ -6,7 +6,7 @@ import { z } from "zod";
 export const authRoutes = new Hono();
 
 authRoutes.post("/login", async (c) => {
-  const body = await c.req.parseBody();
+  const body = await c.req.json().catch(() => ({}));
   const parsed = loginSchema.safeParse(body);
 
   if (!parsed.success) {
@@ -18,6 +18,7 @@ authRoutes.post("/login", async (c) => {
 
     return c.json({
       access_token: result.access_token,
+      user: result.user,
     });
   } catch (error) {
     return c.json(
@@ -41,8 +42,8 @@ authRoutes.get("/me", async (c) => {
         id: storedUser.id,
         first_name: storedUser.first_name,
         last_name: storedUser.last_name,
-        email: user.email,
-        roles: user.roles,
+        email: storedUser.email,
+        roles: storedUser.roles,
       },
     });
   } catch {
