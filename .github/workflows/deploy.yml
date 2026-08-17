@@ -61,14 +61,3 @@ jobs:
           REMOTE_HOST: ${{ secrets.OCI_HOST }}
           REMOTE_USER: ${{ secrets.OCI_USERNAME }}
           TARGET: "/var/www/amp.lucashussey.com/repo" # The root directory of your node server on the VM
-
-      # Step 4: Deploy the built web files to Oracle Cloud VM via SSH/rsync
-      - name: Deploy to Oracle Instance via rsync
-        uses: easingthemes/ssh-deploy@main
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.OCI_SSH_KEY }}
-          ARGS: "-rltgoDzvO --delete"
-          SOURCE: "apps/web/dist/" # Change to "build/" if you use Create React App
-          REMOTE_HOST: ${{ secrets.OCI_HOST }}
-          REMOTE_USER: ${{ secrets.OCI_USERNAME }}
-          TARGET: "/var/www/amp.lucashussey.com/html" # The root directory of your web server on the VM
