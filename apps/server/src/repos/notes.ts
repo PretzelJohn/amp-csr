@@ -1,7 +1,7 @@
 import { desc, eq } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { notesTable } from "../db/schema.js";
-import { DbExecutor } from "./types.js";
+import { CreateRepoFunction, DbExecutor } from "./types.js";
 
 export type Note = typeof notesTable.$inferSelect;
 export type NoteInput = typeof notesTable.$inferInsert;
@@ -13,7 +13,9 @@ type NoteRepo = {
   update(id: number, input: Partial<NoteInput>): Promise<Note | null>;
 };
 
-export function createNoteRepo(executor: DbExecutor = db): NoteRepo {
+export const createNoteRepo: CreateRepoFunction<NoteRepo> = (
+  executor: DbExecutor = db,
+) => {
   return {
     async listByCustomer(customerId: number): Promise<Note[]> {
       return executor
@@ -58,6 +60,6 @@ export function createNoteRepo(executor: DbExecutor = db): NoteRepo {
       return rows[0] ?? null;
     },
   };
-}
+};
 
 export const noteData = createNoteRepo();

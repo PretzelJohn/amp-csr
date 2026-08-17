@@ -1,7 +1,7 @@
 import { desc, eq } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { auditLogsTable } from "../db/schema.js";
-import { DbExecutor } from "./types.js";
+import { CreateRepoFunction, DbExecutor } from "./types.js";
 
 export type AuditLog = typeof auditLogsTable.$inferSelect;
 export type AuditLogInput = typeof auditLogsTable.$inferInsert;
@@ -12,7 +12,9 @@ type AuditLogRepo = {
   create(input: AuditLogInput): Promise<AuditLog | null>;
 };
 
-export function createAuditLogRepo(executor: DbExecutor = db): AuditLogRepo {
+export const createAuditLogRepo: CreateRepoFunction<AuditLogRepo> = (
+  executor: DbExecutor = db,
+) => {
   return {
     async list(): Promise<AuditLog[]> {
       return executor
@@ -45,6 +47,6 @@ export function createAuditLogRepo(executor: DbExecutor = db): AuditLogRepo {
       return rows[0] ?? null;
     },
   };
-}
+};
 
-export const auditLogRepo = createAuditLogRepo();
+export const auditLogRepo: AuditLogRepo = createAuditLogRepo();

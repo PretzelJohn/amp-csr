@@ -1,7 +1,7 @@
 import { desc, eq } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { customersTable } from "../db/schema.js";
-import { DbExecutor } from "./types.js";
+import { CreateRepoFunction, DbExecutor } from "./types.js";
 
 export type Customer = typeof customersTable.$inferSelect;
 export type CustomerInput = typeof customersTable.$inferInsert;
@@ -14,7 +14,9 @@ type CustomerRepo = {
   update(id: number, input: Partial<CustomerInput>): Promise<Customer | null>;
 };
 
-export function createCustomerRepo(executor: DbExecutor = db): CustomerRepo {
+export const createCustomerRepo: CreateRepoFunction<CustomerRepo> = (
+  executor: DbExecutor = db,
+) => {
   return {
     async list(): Promise<Customer[]> {
       return executor
@@ -69,6 +71,6 @@ export function createCustomerRepo(executor: DbExecutor = db): CustomerRepo {
       return rows[0] ?? null;
     },
   };
-}
+};
 
 export const customerRepo = createCustomerRepo();

@@ -1,7 +1,7 @@
 import { desc, eq } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { subscriptionsTable } from "../db/schema.js";
-import { DbExecutor } from "./types.js";
+import { CreateRepoFunction, DbExecutor } from "./types.js";
 
 export type Subscription = typeof subscriptionsTable.$inferSelect;
 export type SubscriptionInput = typeof subscriptionsTable.$inferInsert;
@@ -10,12 +10,15 @@ type SubscriptionRepo = {
   listByCustomer(customerId: number): Promise<Subscription[]>;
   listByVehicle(vehicleId: number): Promise<Subscription[]>;
   getById(id: number): Promise<Subscription | null>;
-  update(id: number, input: Partial<SubscriptionInput>): Promise<Subscription | null>;
+  update(
+    id: number,
+    input: Partial<SubscriptionInput>,
+  ): Promise<Subscription | null>;
 };
 
-export function createSubscriptionRepo(
+export const createSubscriptionRepo: CreateRepoFunction<SubscriptionRepo> = (
   executor: DbExecutor = db,
-): SubscriptionRepo {
+) => {
   return {
     async listByCustomer(customerId: number): Promise<Subscription[]> {
       return executor
@@ -59,6 +62,6 @@ export function createSubscriptionRepo(
       return rows[0] ?? null;
     },
   };
-}
+};
 
 export const subscriptionData = createSubscriptionRepo();
