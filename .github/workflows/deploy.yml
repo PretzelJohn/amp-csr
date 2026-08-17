@@ -55,8 +55,7 @@ jobs:
           OCI_USERNAME: ${{ secrets.OCI_USERNAME }}
           OCI_SSH_KEY: ${{ secrets.OCI_SSH_KEY }}
         run: |
-          export HOME="${HOME:-/home/runner}"
-          export SSH_DIR="${HOME}/.ssh"
+          SSH_DIR="/home/runner/.ssh"
 
           [[ -n "$OCI_HOST" && -n "$OCI_USERNAME" && -n "$OCI_SSH_KEY" ]] || {
             echo "Missing OCI deployment secrets: OCI_HOST, OCI_USERNAME, or OCI_SSH_KEY"
@@ -71,14 +70,23 @@ jobs:
           ssh -o StrictHostKeyChecking=no -i "$SSH_DIR/oci_key" "${OCI_USERNAME}@${OCI_HOST}" "sudo mkdir -p /var/www/amp.lucashussey.com/releases /var/www/amp.lucashussey.com/shared /var/www/amp.lucashussey.com/html && sudo chown -R ${OCI_USERNAME}:${OCI_USERNAME} /var/www/amp.lucashussey.com"
 
       - name: Deploy to OCI via rsync
-        uses: easingthemes/ssh-deploy@main
         env:
-          SSH_PRIVATE_KEY: ${{ secrets.OCI_SSH_KEY }}
-          ARGS: "-rltgoDzvO --delete"
-          SOURCE: "."
-          REMOTE_HOST: ${{ secrets.OCI_HOST }}
-          REMOTE_USER: ${{ secrets.OCI_USERNAME }}
+          OCI_HOST: ${{ secrets.OCI_HOST }}
+          OCI_USERNAME: ${{ secrets.OCI_USERNAME }}
+          OCI_SSH_KEY: ${{ secrets.OCI_SSH_KEY }}
           TARGET: ${{ env.RELEASE_PATH }}
+        run: |
+          SSH_DIR="/home/runner/.ssh"
+          mkdir -p "$SSH_DIR"
+          chmod 700 "$SSH_DIR"
+          printf '%s\n' "$OCI_SSH_KEY" > "$SSH_DIR/oci_key"
+          chmod 600 "$SSH_DIR/oci_key"
+
+          ssh -o StrictHostKeyChecking=no -i "$SSH_DIR/oci_key" "${OCI_USERNAME}@${OCI_HOST}" "sudo mkdir -p '${TARGET}' && sudo chown -R ${OCI_USERNAME}:${OCI_USERNAME} /var/www/amp.lucashussey.com"
+
+          rsync -avz --delete \
+            -e "ssh -i '$SSH_DIR/oci_key' -o StrictHostKeyChecking=no" \
+            . "${OCI_USERNAME}@${OCI_HOST}:${TARGET}/"
 
       - name: Prepare deployment and restart services
         env:
@@ -89,8 +97,7 @@ jobs:
           DEFAULT_USER_PASSWORD: ${{ secrets.DEFAULT_USER_PASSWORD }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
         run: |
-          export HOME="${HOME:-/home/runner}"
-          export SSH_DIR="${HOME}/.ssh"
+          SSH_DIR="/home/runner/.ssh"
 
           [[ -n "$OCI_HOST" && -n "$OCI_USERNAME" && -n "$OCI_SSH_KEY" ]] || {
             echo "Missing OCI deployment secrets: OCI_HOST, OCI_USERNAME, or OCI_SSH_KEY"
