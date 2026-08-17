@@ -35,14 +35,26 @@ export const purchaseRecordSchema = z
   })
   .loose();
 
+export const noteRecordSchema = z
+  .object({
+    id: z.union([z.string(), z.number()]),
+    customer_id: z.union([z.string(), z.number()]),
+    note: z.string(),
+    created_at: z.string().optional(),
+    updated_at: z.string().optional(),
+  })
+  .loose();
+
 export const customerDetailRecordSchema = customerRecordSchema
   .extend({
     subscriptions: z.array(subscriptionRecordSchema),
     purchaseHistory: z.array(purchaseRecordSchema),
+    notes: z.array(noteRecordSchema),
   })
   .loose();
 
 export type CustomerRecord = z.infer<typeof customerRecordSchema>;
 export type SubscriptionRecord = z.infer<typeof subscriptionRecordSchema>;
 export type PurchaseRecord = z.infer<typeof purchaseRecordSchema>;
+export type NoteRecord = z.infer<typeof noteRecordSchema>;
 export type CustomerDetailRecord = z.infer<typeof customerDetailRecordSchema>;
