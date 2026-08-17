@@ -27,3 +27,4 @@ web/.env
 server/.env
 .env
 *.tsbuildinfo
+.vscode

@@ -3,15 +3,26 @@ import { Hono } from "hono";
 import { serve } from "@hono/node-server";
 import { logger } from "hono/logger";
 import { cors } from "hono/cors";
+import { authRoutes } from "./routes/auth.js";
+import { authMiddleware } from "./middleware/auth.js";
 
 const app = new Hono();
 
 app.use("*", logger());
-app.use("*", cors());
+app.use(
+  "*",
+  cors({
+    origin: ["http://localhost:5173", "https://amp.lucashussey.com"],
+    allowMethods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allowHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
+  }),
+);
 
 app.get("/health", (c) => c.json({ ok: true, service: "AMP CSR API" }));
 
-// TODO: API Goes here
+app.use("/api/v1/auth/me", authMiddleware);
+app.route("/api/v1/auth", authRoutes);
 
 export default app;
 

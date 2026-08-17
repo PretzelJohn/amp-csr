@@ -159,33 +159,6 @@ async function seedDatabase() {
     },
   }));
 
-  console.log("Seeding audit logs table...");
-  await seed(db, { auditLogsTable }, { seed: 12345 }).refine((f) => ({
-    auditLogsTable: {
-      count: 200,
-      columns: {
-        user_id: f.int({ minValue: 1, maxValue: 1 }),
-        customer_id: f.int({ minValue: 1, maxValue: 10 }),
-        table_name: f.valuesFromArray({
-          values: [
-            "customers",
-            "vehicles",
-            "subscriptions",
-            "subscription_payments",
-            "purchases",
-            "notes",
-          ],
-        }),
-        record_id: f.int({ minValue: 1, maxValue: 10 }),
-        action_type: f.valuesFromArray({
-          values: ["create", "update", "delete"],
-        }),
-        from: f.json(),
-        to: f.json(),
-      },
-    },
-  }));
-
   console.log("Database seeding complete.");
   exit(0);
 }
