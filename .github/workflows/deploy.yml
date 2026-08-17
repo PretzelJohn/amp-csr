@@ -17,6 +17,7 @@ jobs:
       WEB_DIST: /var/www/amp.lucashussey.com/html
 
     steps:
+      # Step 1: Setup
       - name: Checkout source code
         uses: actions/checkout@v4
 
@@ -31,6 +32,7 @@ jobs:
           node-version: "22.22.0"
           cache: "pnpm"
 
+      # Step 2: Install dependencies and build
       - name: Install Server Dependencies
         run: pnpm --filter apps/server install
 
@@ -49,119 +51,24 @@ jobs:
       - name: Build React App
         run: pnpm --filter apps/web run build
 
-      - name: Prepare remote deployment directory
+      # Step 3: Deploy the built server files to Oracle Cloud VM via SSH/rsync
+      - name: Deploy to Oracle Instance via rsync
+        uses: easingthemes/ssh-deploy@main
         env:
-          OCI_HOST: ${{ secrets.OCI_HOST }}
-          OCI_USERNAME: ${{ secrets.OCI_USERNAME }}
-          OCI_SSH_KEY: ${{ secrets.OCI_SSH_KEY }}
-        run: |
-          sudo mkdir -p /home/runner/.ssh
-          export HOME="${HOME:-/home/runner}"
-          SSH_DIR="${HOME}/.ssh"
+          SSH_PRIVATE_KEY: ${{ secrets.OCI_SSH_KEY }}
+          ARGS: "-rltgoDzvO --delete"
+          SOURCE: "." # Change to "build/" if you use Create React App
+          REMOTE_HOST: ${{ secrets.OCI_HOST }}
+          REMOTE_USER: ${{ secrets.OCI_USERNAME }}
+          TARGET: "/var/www/amp.lucashussey.com/repo" # The root directory of your node server on the VM
 
-          [[ -n "$OCI_HOST" && -n "$OCI_USERNAME" && -n "$OCI_SSH_KEY" ]] || {
-            echo "Missing OCI deployment secrets: OCI_HOST, OCI_USERNAME, or OCI_SSH_KEY"
-            exit 1
-          }
-
-          mkdir -p "$SSH_DIR"
-          chmod 700 "$SSH_DIR"
-          printf '%s' "$OCI_SSH_KEY" > "$SSH_DIR/oci_key"
-          chmod 600 "$SSH_DIR/oci_key"
-
-          ssh -o StrictHostKeyChecking=no -i "$SSH_DIR/oci_key" "${OCI_USERNAME}@${OCI_HOST}" "sudo mkdir -p /var/www/amp.lucashussey.com/releases /var/www/amp.lucashussey.com/shared /var/www/amp.lucashussey.com/html && sudo chown -R ${OCI_USERNAME}:${OCI_USERNAME} /var/www/amp.lucashussey.com"
-
-      - name: Deploy to OCI via rsync
+      # Step 4: Deploy the built web files to Oracle Cloud VM via SSH/rsync
+      - name: Deploy to Oracle Instance via rsync
+        uses: easingthemes/ssh-deploy@main
         env:
-          OCI_HOST: ${{ secrets.OCI_HOST }}
-          OCI_USERNAME: ${{ secrets.OCI_USERNAME }}
-          OCI_SSH_KEY: ${{ secrets.OCI_SSH_KEY }}
-          TARGET: ${{ env.RELEASE_PATH }}
-        run: |
-          sudo mkdir -p /home/runner/.ssh
-          export HOME="${HOME:-/home/runner}"
-          SSH_DIR="${HOME}/.ssh"
-
-          [[ -n "$OCI_HOST" && -n "$OCI_USERNAME" && -n "$OCI_SSH_KEY" ]] || {
-            echo "Missing OCI deployment secrets: OCI_HOST, OCI_USERNAME, or OCI_SSH_KEY"
-            exit 1
-          }
-
-          mkdir -p "$SSH_DIR"
-          chmod 700 "$SSH_DIR"
-          printf '%s' "$OCI_SSH_KEY" > "$SSH_DIR/oci_key"
-          chmod 600 "$SSH_DIR/oci_key"
-
-          ssh -o StrictHostKeyChecking=no -i "$SSH_DIR/oci_key" "${OCI_USERNAME}@${OCI_HOST}" "sudo mkdir -p '${TARGET}' && sudo chown -R ${OCI_USERNAME}:${OCI_USERNAME} /var/www/amp.lucashussey.com"
-
-          rsync -avz --delete \
-            -e "ssh -i '$SSH_DIR/oci_key' -o StrictHostKeyChecking=no" \
-            . "${OCI_USERNAME}@${OCI_HOST}:${TARGET}/"
-
-      - name: Prepare deployment and restart services
-        env:
-          OCI_HOST: ${{ secrets.OCI_HOST }}
-          OCI_USERNAME: ${{ secrets.OCI_USERNAME }}
-          OCI_SSH_KEY: ${{ secrets.OCI_SSH_KEY }}
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          DEFAULT_USER_PASSWORD: ${{ secrets.DEFAULT_USER_PASSWORD }}
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
-        run: |
-          sudo mkdir -p /home/runner/.ssh
-          export HOME="${HOME:-/home/runner}"
-          SSH_DIR="${HOME}/.ssh"
-
-          [[ -n "$OCI_HOST" && -n "$OCI_USERNAME" && -n "$OCI_SSH_KEY" ]] || {
-            echo "Missing OCI deployment secrets: OCI_HOST, OCI_USERNAME, or OCI_SSH_KEY"
-            exit 1
-          }
-
-          mkdir -p "$SSH_DIR"
-          chmod 700 "$SSH_DIR"
-          printf '%s' "$OCI_SSH_KEY" > "$SSH_DIR/oci_key"
-          chmod 600 "$SSH_DIR/oci_key"
-
-          export REMOTE_DATABASE_URL="$DATABASE_URL"
-          export REMOTE_DEFAULT_USER_PASSWORD="$DEFAULT_USER_PASSWORD"
-          export REMOTE_JWT_SECRET="$JWT_SECRET"
-
-          ssh -o StrictHostKeyChecking=no -i "$SSH_DIR/oci_key" "${OCI_USERNAME}@${OCI_HOST}" "bash -s" <<REMOTE
-            set -euo pipefail
-
-            export DATABASE_URL="${REMOTE_DATABASE_URL}"
-            export DEFAULT_USER_PASSWORD="${REMOTE_DEFAULT_USER_PASSWORD}"
-            export JWT_SECRET="${REMOTE_JWT_SECRET}"
-
-            APP_ROOT="/var/www/amp.lucashussey.com"
-            RELEASE_PATH="${APP_ROOT}/releases/${{ github.sha }}"
-            CURRENT_PATH="${APP_ROOT}/current"
-            WEB_DIST="${APP_ROOT}/html"
-            SHARED_DIR="${APP_ROOT}/shared"
-
-            sudo mkdir -p "${SHARED_DIR}" "${WEB_DIST}"
-            sudo mkdir -p "${APP_ROOT}/releases"
-
-            cat > "${SHARED_DIR}/.env" <<EOF
-            DATABASE_URL=${DATABASE_URL}
-            DEFAULT_USER_PASSWORD=${DEFAULT_USER_PASSWORD}
-            JWT_SECRET=${JWT_SECRET}
-            PORT=4000
-            EOF
-
-            sudo ln -sfn "${RELEASE_PATH}" "${CURRENT_PATH}"
-
-            cd "${RELEASE_PATH}"
-            pnpm install --frozen-lockfile
-            sudo cp "${SHARED_DIR}/.env" "apps/server/.env"
-
-            pnpm --dir apps/server build
-            pnpm --dir apps/web build
-
-            sudo rm -rf "${WEB_DIST}"/*
-            sudo cp -R "apps/web/dist/." "${WEB_DIST}/"
-
-            sudo systemctl daemon-reload
-            sudo systemctl restart amp-api
-            sudo nginx -t
-            sudo systemctl reload nginx
-          REMOTE
+          SSH_PRIVATE_KEY: ${{ secrets.OCI_SSH_KEY }}
+          ARGS: "-rltgoDzvO --delete"
+          SOURCE: "apps/web/dist/" # Change to "build/" if you use Create React App
+          REMOTE_HOST: ${{ secrets.OCI_HOST }}
+          REMOTE_USER: ${{ secrets.OCI_USERNAME }}
+          TARGET: "/var/www/amp.lucashussey.com/html" # The root directory of your web server on the VM
