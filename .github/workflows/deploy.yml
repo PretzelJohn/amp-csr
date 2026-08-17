@@ -82,8 +82,8 @@ jobs:
             WEB_DIST="${APP_ROOT}/html"
             SHARED_DIR="${APP_ROOT}/shared"
 
-            mkdir -p "${SHARED_DIR}" "${WEB_DIST}"
-            mkdir -p "${APP_ROOT}/releases"
+            sudo mkdir -p "${SHARED_DIR}" "${WEB_DIST}"
+            sudo mkdir -p "${APP_ROOT}/releases"
 
             cat > "${SHARED_DIR}/.env" <<EOF
             DATABASE_URL=${DATABASE_URL}
@@ -92,17 +92,17 @@ jobs:
             PORT=4000
             EOF
 
-            ln -sfn "${RELEASE_PATH}" "${CURRENT_PATH}"
+            sudo ln -sfn "${RELEASE_PATH}" "${CURRENT_PATH}"
 
             cd "${RELEASE_PATH}"
             pnpm install --frozen-lockfile
-            cp "${SHARED_DIR}/.env" "apps/server/.env"
+            sudo cp "${SHARED_DIR}/.env" "apps/server/.env"
 
             pnpm --dir apps/server build
             pnpm --dir apps/web build
 
-            rm -rf "${WEB_DIST}"/*
-            cp -R "apps/web/dist/." "${WEB_DIST}/"
+            sudo rm -rf "${WEB_DIST}"/*
+            sudo cp -R "apps/web/dist/." "${WEB_DIST}/"
 
             sudo systemctl daemon-reload
             sudo systemctl restart amp-api
