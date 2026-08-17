@@ -63,6 +63,7 @@ export const notesTable = pgTable("notes", {
   ...timestamps,
 });
 
+//purchases table: stores customer purchase information
 export const purchasesTable = pgTable("purchases", {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
   customer_id: integer()
