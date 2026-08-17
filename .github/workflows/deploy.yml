@@ -86,8 +86,16 @@ jobs:
           printf '%s\n' "$OCI_SSH_KEY" > ~/.ssh/oci_key
           chmod 600 ~/.ssh/oci_key
 
-          ssh -o StrictHostKeyChecking=no -i ~/.ssh/oci_key "${OCI_USERNAME}@${OCI_HOST}" <<'REMOTE'
+          export REMOTE_DATABASE_URL="$DATABASE_URL"
+          export REMOTE_DEFAULT_USER_PASSWORD="$DEFAULT_USER_PASSWORD"
+          export REMOTE_JWT_SECRET="$JWT_SECRET"
+
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/oci_key "${OCI_USERNAME}@${OCI_HOST}" "bash -s" <<REMOTE
             set -euo pipefail
+
+            export DATABASE_URL="${REMOTE_DATABASE_URL}"
+            export DEFAULT_USER_PASSWORD="${REMOTE_DEFAULT_USER_PASSWORD}"
+            export JWT_SECRET="${REMOTE_JWT_SECRET}"
 
             APP_ROOT="/var/www/amp.lucashussey.com"
             RELEASE_PATH="${APP_ROOT}/releases/${{ github.sha }}"
