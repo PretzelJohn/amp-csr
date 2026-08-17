@@ -24,7 +24,7 @@ jobs:
         run: |
           pnpm --dir apps/server test -- --run src/routes/auth.test.ts
           pnpm --dir apps/web build
-          pnpm --dir packages/shared build
+          pnpm --dir packages/* build
           pnpm --dir apps/server build
 
       - name: Deploy to OCI via rsync
@@ -79,6 +79,7 @@ jobs:
             cp "${SHARED_DIR}/.env" "apps/server/.env"
 
             pnpm --dir apps/server build
+            pnpm --dir packages/* build
             pnpm --dir apps/web build
 
             rm -rf "${WEB_DIST}"/*
