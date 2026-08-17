@@ -40,6 +40,20 @@ subscriptionRoutes.patch("/:subscriptionId/status", async (c) => {
   return c.json(updated);
 });
 
+subscriptionRoutes.delete("/:subscriptionId", async (c) => {
+  const user = c.get("user");
+  const subscriptionId = Number(c.req.param("subscriptionId"));
+  if (!Number.isFinite(subscriptionId) || subscriptionId <= 0) {
+    return c.json({ error: "Invalid subscriptionId" }, 400);
+  }
+
+  const deleted = await subscriptionService.deleteSubscription(
+    user.id,
+    subscriptionId,
+  );
+  return c.json(deleted);
+});
+
 subscriptionRoutes.post("/:subscriptionId/transfer", async (c) => {
   const user = c.get("user");
   const body = await c.req.json().catch(() => ({}));

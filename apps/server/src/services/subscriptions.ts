@@ -173,4 +173,37 @@ export const subscriptionService = {
       return updated;
     });
   },
+
+  async deleteSubscription(userId: number, subscriptionId: number) {
+    if (!Number.isFinite(subscriptionId) || subscriptionId <= 0) {
+      throw new Error("Invalid subscriptionId");
+    }
+
+    return withTransaction(async (tx) => {
+      const subscriptionRepo = createSubscriptionRepo(tx);
+      const auditLogRepo = createAuditLogRepo(tx);
+
+      const previous = await subscriptionRepo.getById(subscriptionId);
+      if (!previous) {
+        throw new Error("Subscription not found");
+      }
+
+      const deleted = await subscriptionRepo.delete(subscriptionId);
+      if (!deleted) {
+        throw new Error("Subscription could not be deleted");
+      }
+
+      await auditLogRepo.create({
+        user_id: userId,
+        customer_id: previous.customer_id,
+        table_name: "subscriptions",
+        record_id: subscriptionId,
+        action_type: "delete",
+        from: previous,
+        to: null,
+      });
+
+      return deleted;
+    });
+  },
 };

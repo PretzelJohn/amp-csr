@@ -282,6 +282,21 @@ export const CustomerSubscriptions = ({
     }
   };
 
+  const handleRemoveSubscription = async (subscriptionId: number | string) => {
+    setIsSubmitting(true);
+    try {
+      await apiFetch(`/subscriptions/${String(subscriptionId)}`, {
+        method: "DELETE",
+      });
+
+      await Promise.all([fetchSubscriptions(), fetchVehicles()]);
+    } catch {
+      // no-op
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleCreateSubscription = async () => {
     const plan = newSubscription.plan.trim();
 
@@ -567,6 +582,17 @@ export const CustomerSubscriptions = ({
                             Cancel
                           </Button>
                         ) : null}
+
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          disabled={isSubmitting}
+                          onClick={() =>
+                            void handleRemoveSubscription(subscription.id)
+                          }
+                        >
+                          Remove
+                        </Button>
 
                         {!statusIsCancelled ? (
                           <Button

@@ -1,6 +1,7 @@
 import axios, { type AxiosRequestConfig } from "axios";
 
-const API_BASE = "http://localhost:4000/api/v1";
+const BASE_URL = import.meta.env.VITE_BASE_URL ?? "http://localhost:4000";
+const API_BASE = "/api/v1";
 const AUTH_TOKEN_KEY = "amp_auth_token";
 const AUTH_USER_KEY = "amp_auth_user";
 
@@ -13,7 +14,7 @@ export type AuthUser = {
 };
 
 const api = axios.create({
-  baseURL: API_BASE,
+  baseURL: new URL(API_BASE, BASE_URL).toString(),
   withCredentials: true,
   headers: {
     "Content-Type": "application/json",
