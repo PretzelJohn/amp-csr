@@ -1,9 +1,13 @@
-import { desc, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db } from "../db/index.js";
-import { usersTable } from "../db/schema.js";
+import { rolesTable, usersTable } from "../db/schema.js";
 import { CreateRepoFunction, DbExecutor } from "./types.js";
 
-export type User = typeof usersTable.$inferSelect;
+export type User = typeof usersTable.$inferSelect & {
+  usersToRoles: {
+    role: typeof rolesTable.$inferSelect;
+  }[];
+};
 export type UserInput = typeof usersTable.$inferInsert;
 
 type UserRepo = {
@@ -16,23 +20,33 @@ export const createUserRepo: CreateRepoFunction<UserRepo> = (
 ) => {
   return {
     async getById(id: number): Promise<User | null> {
-      const rows = await executor
-        .select()
-        .from(usersTable)
-        .where(eq(usersTable.id, id))
-        .limit(1);
+      const row = await executor.query.usersTable.findFirst({
+        where: eq(usersTable.id, id),
+        with: {
+          usersToRoles: {
+            with: {
+              role: true,
+            },
+          },
+        },
+      });
 
-      return rows[0] ?? null;
+      return row ?? null;
     },
 
     async getByEmail(email: string): Promise<User | null> {
-      const rows = await executor
-        .select()
-        .from(usersTable)
-        .where(eq(usersTable.email, email))
-        .limit(1);
+      const row = await executor.query.usersTable.findFirst({
+        where: eq(usersTable.email, email),
+        with: {
+          usersToRoles: {
+            with: {
+              role: true,
+            },
+          },
+        },
+      });
 
-      return rows[0] ?? null;
+      return row ?? null;
     },
   };
 };

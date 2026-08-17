@@ -85,6 +85,7 @@ Create a `.env` file inside `apps/server` with:
 ```bash
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/postgres
 DEFAULT_USER_PASSWORD=<password>
+JWT_SECRET=<secret>
 PORT=4000
 ```
 

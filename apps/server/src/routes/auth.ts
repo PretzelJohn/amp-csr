@@ -1,7 +1,6 @@
 import { Hono } from "hono";
-import { getCookie, setCookie } from "hono/cookie";
 import { loginSchema } from "../schemas/common.js";
-import { loginUser, verifyJwt } from "../services/auth.js";
+import { loginUser } from "../services/auth.js";
 import { z } from "zod";
 
 export const authRoutes = new Hono();
@@ -16,15 +15,9 @@ authRoutes.post("/login", async (c) => {
 
   try {
     const result = await loginUser(parsed.data);
-    setCookie(c, "token", result.token, {
-      httpOnly: true,
-      sameSite: "Lax",
-      secure: false,
-      path: "/",
-    });
 
     return c.json({
-      access_token: result.token,
+      access_token: result.access_token,
     });
   } catch (error) {
     return c.json(
@@ -45,7 +38,7 @@ authRoutes.get("/me", async (c) => {
       user: {
         id: user.id,
         email: user.email,
-        role: user.role,
+        roles: user.roles,
       },
     });
   } catch {
