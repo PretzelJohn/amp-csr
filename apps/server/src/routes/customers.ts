@@ -5,6 +5,8 @@ import {
 } from "../schemas/common.js";
 import { customerService } from "../services/customers.js";
 import { subscriptionService } from "../services/subscriptions.js";
+import { withTransaction } from "../repos/utils.js";
+import { createVehicleRepo } from "../repos/vehicles.js";
 
 export const customerRoutes = new Hono();
 
@@ -32,8 +34,7 @@ customerRoutes.get("/:customerId/vehicles", async (c) => {
   const { customerId } = customerIdParamSchema.parse({
     customerId: c.req.param("customerId"),
   });
-  const vehicles =
-    await customerService.getVehiclesWithSubscriptionStatus(customerId);
+  const vehicles = await customerService.getVehicles(customerId);
   return c.json(vehicles);
 });
 
@@ -137,13 +138,34 @@ customerRoutes.post("/:customerId/subscriptions", async (c) => {
     return c.json({ error: "Subscription plan is required" }, 400);
   }
 
-  const created = await subscriptionService.createForCustomer(customerId, {
-    vehicle_id: vehicleId,
-    plan,
-    starts_at: body.starts_at,
-    ends_at: body.ends_at ?? null,
-    status: typeof body.status === "string" ? body.status : "active",
+  const created = await subscriptionService.createForCustomer(
+    user.id,
+    customerId,
+    {
+      vehicle_id: vehicleId,
+      plan,
+      starts_at: body.starts_at,
+      ends_at: body.ends_at ?? null,
+      status: typeof body.status === "string" ? body.status : "active",
+    },
+  );
+
+  return c.json(created);
+});
+
+customerRoutes.post("/:customerId/vehicles", async (c) => {
+  const user = c.get("user");
+  const { customerId } = customerIdParamSchema.parse({
+    customerId: c.req.param("customerId"),
   });
+
+  const body = await c.req.json().catch(() => ({}));
+
+  const created = await customerService.createVehicleForCustomer(
+    user.id,
+    customerId,
+    body,
+  );
 
   return c.json(created);
 });

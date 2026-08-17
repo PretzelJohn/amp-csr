@@ -21,8 +21,6 @@ export type CustomerVehicle = {
   make: string;
   model: string;
   license_plate: string;
-  subscriptionStatus?: string | null;
-  subscriptionPlan?: string | null;
   created_at?: string;
   updated_at?: string;
 };
@@ -125,6 +123,13 @@ export const CustomerSubscriptions = ({
     starts_at: "",
     ends_at: "",
     status: "active",
+  });
+  const [showNewVehicleForm, setShowNewVehicleForm] = useState(false);
+  const [newVehicleForm, setNewVehicleForm] = useState({
+    year: "",
+    make: "",
+    model: "",
+    license_plate: "",
   });
   const [transferSubscription, setTransferSubscription] =
     useState<CustomerSubscription | null>(null);
@@ -278,15 +283,56 @@ export const CustomerSubscriptions = ({
   };
 
   const handleCreateSubscription = async () => {
-    const vehicleId = Number(newSubscription.vehicleId);
     const plan = newSubscription.plan.trim();
 
-    if (!Number.isFinite(vehicleId) || vehicleId <= 0 || !plan) {
+    if (!plan) {
       return;
     }
 
     setIsSubmitting(true);
     try {
+      let vehicleId = Number(newSubscription.vehicleId);
+
+      if (showNewVehicleForm) {
+        const year = Number(newVehicleForm.year);
+        const make = newVehicleForm.make.trim();
+        const model = newVehicleForm.model.trim();
+        const licensePlate = newVehicleForm.license_plate.trim();
+
+        if (
+          !Number.isFinite(year) ||
+          year <= 0 ||
+          !make ||
+          !model ||
+          !licensePlate
+        ) {
+          return;
+        }
+
+        const createdVehicleResponse = await apiFetch(
+          `/customers/${String(customerId)}/vehicles`,
+          {
+            method: "POST",
+            data: {
+              year,
+              make,
+              model,
+              license_plate: licensePlate,
+            },
+          },
+        );
+
+        const createdVehicle = createdVehicleResponse.data as CustomerVehicle;
+        vehicleId = Number(createdVehicle?.id ?? NaN);
+        if (!Number.isFinite(vehicleId) || vehicleId <= 0) {
+          return;
+        }
+      }
+
+      if (!Number.isFinite(vehicleId) || vehicleId <= 0) {
+        return;
+      }
+
       await apiFetch(`/customers/${String(customerId)}/subscriptions`, {
         method: "POST",
         data: {
@@ -305,6 +351,13 @@ export const CustomerSubscriptions = ({
         starts_at: "",
         ends_at: "",
         status: "active",
+      });
+      setShowNewVehicleForm(false);
+      setNewVehicleForm({
+        year: "",
+        make: "",
+        model: "",
+        license_plate: "",
       });
       await Promise.all([fetchSubscriptions(), fetchVehicles()]);
     } catch {
@@ -330,7 +383,7 @@ export const CustomerSubscriptions = ({
               size="sm"
               variant="default"
               onClick={() => setIsCreateDialogOpen(true)}
-              disabled={vehicles.length === 0 || isSubmitting}
+              disabled={isSubmitting}
             >
               Add subscription
             </Button>
@@ -549,6 +602,13 @@ export const CustomerSubscriptions = ({
               ends_at: "",
               status: "active",
             });
+            setShowNewVehicleForm(false);
+            setNewVehicleForm({
+              year: "",
+              make: "",
+              model: "",
+              license_plate: "",
+            });
           }
         }}
       >
@@ -565,16 +625,33 @@ export const CustomerSubscriptions = ({
             <div className="space-y-2">
               <label className="text-sm font-medium">Owned vehicle</label>
               <select
-                value={newSubscription.vehicleId}
-                onChange={(event) =>
+                value={
+                  showNewVehicleForm
+                    ? "__new_vehicle__"
+                    : newSubscription.vehicleId
+                }
+                onChange={(event) => {
+                  const nextValue = event.target.value;
+
+                  if (nextValue === "__new_vehicle__") {
+                    setShowNewVehicleForm(true);
+                    setNewSubscription((current) => ({
+                      ...current,
+                      vehicleId: "",
+                    }));
+                    return;
+                  }
+
+                  setShowNewVehicleForm(false);
                   setNewSubscription((current) => ({
                     ...current,
-                    vehicleId: event.target.value,
-                  }))
-                }
+                    vehicleId: nextValue,
+                  }));
+                }}
                 className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
               >
                 <option value="">Select an owned vehicle</option>
+                <option value="__new_vehicle__">Create a new vehicle...</option>
                 {vehicles.map((vehicle) => (
                   <option key={vehicle.id} value={String(vehicle.id)}>
                     {vehicle.year} {vehicle.make} {vehicle.model} (
@@ -583,6 +660,68 @@ export const CustomerSubscriptions = ({
                 ))}
               </select>
             </div>
+
+            {showNewVehicleForm ? (
+              <div className="grid gap-4 rounded-md border bg-muted/20 p-3 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Year</label>
+                  <Input
+                    type="number"
+                    min="1900"
+                    value={newVehicleForm.year}
+                    onChange={(event) =>
+                      setNewVehicleForm((current) => ({
+                        ...current,
+                        year: event.target.value,
+                      }))
+                    }
+                    placeholder="2024"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Make</label>
+                  <Input
+                    value={newVehicleForm.make}
+                    onChange={(event) =>
+                      setNewVehicleForm((current) => ({
+                        ...current,
+                        make: event.target.value,
+                      }))
+                    }
+                    placeholder="Toyota"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Model</label>
+                  <Input
+                    value={newVehicleForm.model}
+                    onChange={(event) =>
+                      setNewVehicleForm((current) => ({
+                        ...current,
+                        model: event.target.value,
+                      }))
+                    }
+                    placeholder="Camry"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">License plate</label>
+                  <Input
+                    value={newVehicleForm.license_plate}
+                    onChange={(event) =>
+                      setNewVehicleForm((current) => ({
+                        ...current,
+                        license_plate: event.target.value,
+                      }))
+                    }
+                    placeholder="ABC123"
+                  />
+                </div>
+              </div>
+            ) : null}
 
             <div className="space-y-2">
               <label className="text-sm font-medium">Plan</label>
@@ -655,9 +794,14 @@ export const CustomerSubscriptions = ({
             <Button
               onClick={() => void handleCreateSubscription()}
               disabled={
-                !newSubscription.vehicleId ||
+                isSubmitting ||
                 !newSubscription.plan.trim() ||
-                isSubmitting
+                (!showNewVehicleForm && !newSubscription.vehicleId) ||
+                (showNewVehicleForm &&
+                  (!newVehicleForm.year ||
+                    !newVehicleForm.make.trim() ||
+                    !newVehicleForm.model.trim() ||
+                    !newVehicleForm.license_plate.trim()))
               }
             >
               {isSubmitting ? "Saving..." : "Create subscription"}

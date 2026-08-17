@@ -13,6 +13,7 @@ import {
 } from "./schema.js";
 import { exit } from "process";
 import { hashPassword } from "../lib/passwords.js";
+import { sql } from "drizzle-orm";
 
 const SEED = 12345; // Use a fixed seed for reproducibility
 
@@ -98,17 +99,6 @@ async function seedDatabase() {
     },
   }));
 
-  console.log("Seeding vehicle owners table...");
-  await seed(db, { vehicleOwnersTable }, { seed: SEED }).refine((f) => ({
-    vehicleOwnersTable: {
-      count: 20,
-      columns: {
-        vehicle_id: f.int({ minValue: 1, maxValue: 20 }),
-        customer_id: f.int({ minValue: 1, maxValue: 10 }),
-      },
-    },
-  }));
-
   console.log("Seeding subscriptions table...");
   await seed(db, { subscriptionsTable }, { seed: SEED }).refine((f) => ({
     subscriptionsTable: {
@@ -140,6 +130,16 @@ async function seedDatabase() {
     },
   }));
 
+  //attaches vehicles to customers based on subscription
+  console.log("Seeding vehicle owners table based on subscriptions...");
+  const subscriptions = await db.select().from(subscriptionsTable);
+  for (const subscription of subscriptions) {
+    await db.insert(vehicleOwnersTable).values({
+      vehicle_id: subscription.vehicle_id,
+      customer_id: subscription.customer_id,
+    });
+  }
+
   console.log("Seeding purchases table...");
   await seed(db, { purchasesTable }, { seed: SEED }).refine((f) => ({
     purchasesTable: {
@@ -157,6 +157,23 @@ async function seedDatabase() {
       },
     },
   }));
+
+  // Reset the sequences for all tables to avoid conflicts with future inserts
+  await db.execute(
+    sql`SELECT setval(pg_get_serial_sequence('customers', 'id'), coalesce(max(id), 0) + 1, false) FROM customers`,
+  );
+  await db.execute(
+    sql`SELECT setval(pg_get_serial_sequence('vehicles', 'id'), coalesce(max(id), 0) + 1, false) FROM vehicles`,
+  );
+  await db.execute(
+    sql`SELECT setval(pg_get_serial_sequence('subscriptions', 'id'), coalesce(max(id), 0) + 1, false) FROM subscriptions`,
+  );
+  await db.execute(
+    sql`SELECT setval(pg_get_serial_sequence('subscription_payments', 'id'), coalesce(max(id), 0) + 1, false) FROM subscription_payments`,
+  );
+  await db.execute(
+    sql`SELECT setval(pg_get_serial_sequence('purchases', 'id'), coalesce(max(id), 0) + 1, false) FROM purchases`,
+  );
 
   console.log("Database seeding complete.");
   exit(0);

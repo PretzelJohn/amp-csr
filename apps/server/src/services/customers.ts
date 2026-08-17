@@ -13,6 +13,7 @@ import { createVehicleRepo, Vehicle } from "../repos/vehicles.js";
 import { withTransaction } from "../repos/utils.js";
 import { createPurchaseRepo, Purchase } from "../repos/purchases.js";
 import { PaginationQuery } from "../schemas/common.js";
+import { createVehicleOwnersRepo } from "../repos/vehicle-owners.js";
 
 export type CustomerListItem = {
   id: number;
@@ -196,6 +197,11 @@ export const customerService = {
     return purchaseRepo.listByCustomer(customerId);
   },
 
+  async getVehicles(customerId: number) {
+    const vehicleRepo = createVehicleRepo();
+    return vehicleRepo.listByCustomer(customerId);
+  },
+
   async getVehiclesWithSubscriptionStatus(customerId: number) {
     const vehicleRepo = createVehicleRepo();
     const subscriptionRepo = createSubscriptionRepo();
@@ -212,6 +218,46 @@ export const customerService = {
         subscriptionStatus: current?.status ?? null,
         subscriptionPlan: current?.plan ?? null,
       };
+    });
+  },
+
+  async createVehicleForCustomer(
+    userId: number,
+    customerId: number,
+    vehicleInput: {
+      year: number;
+      make: string;
+      model: string;
+      license_plate: string;
+    },
+  ) {
+    return withTransaction(async (tx) => {
+      const vehicleRepo = createVehicleRepo(tx);
+      const vehicleOwnersRepo = createVehicleOwnersRepo(tx);
+      const auditLogRepo = createAuditLogRepo(tx);
+
+      const vehicle = await vehicleRepo.create(vehicleInput);
+
+      if (!vehicle) {
+        throw new Error("Vehicle could not be created");
+      }
+
+      await vehicleOwnersRepo.create({
+        vehicle_id: vehicle.id,
+        customer_id: customerId,
+      });
+
+      await auditLogRepo.create({
+        user_id: userId,
+        customer_id: customerId,
+        table_name: "vehicles",
+        record_id: vehicle.id,
+        action_type: "create",
+        from: null,
+        to: vehicle,
+      });
+
+      return vehicle;
     });
   },
 
